@@ -9,6 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+
     const { data, error } = await supabase
       .from('items')
       .select('*')

@@ -13,9 +13,11 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+
     const { data: sale, error } = await supabase
       .from('sales_retail')
       .select(
@@ -84,9 +86,10 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { payment_status, payment_method, description, employee_id } = body;
 
@@ -106,7 +109,7 @@ export async function PATCH(
     const { data: oldSale } = await supabase
       .from('sales_retail')
       .select('payment_status, payment_method, description')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     // Prepare update data
@@ -122,7 +125,7 @@ export async function PATCH(
     const { data: updatedSale, error } = await supabase
       .from('sales_retail')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -140,7 +143,7 @@ export async function PATCH(
       user_id: employee_id || null,
       action: 'UPDATE',
       table_name: 'sales_retail',
-      record_id: params.id,
+      record_id: id,
       old_values: oldSale,
       new_values: updateData,
       created_at: new Date().toISOString(),
@@ -165,9 +168,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+
     // Get sale with items for stock reversal
     const { data: sale, error: saleError } = await supabase
       .from('sales_retail')
@@ -182,7 +187,7 @@ export async function DELETE(
         )
       `
       )
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (saleError || !sale) {
@@ -196,7 +201,7 @@ export async function DELETE(
     const { error: deleteError } = await supabase
       .from('sales_retail')
       .update({ is_active: false, updated_at: new Date().toISOString() })
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (deleteError) {
       console.error('Error deleting sale:', deleteError);
@@ -235,7 +240,7 @@ export async function DELETE(
             store_id: sale.store_id,
             transaction_type: 'sale_return',
             quantity: item.quantity, // Positive to add back
-            reference_id: params.id,
+            reference_id: id,
             reference_type: 'sales_retail_reversal',
             notes: `Sale reversal: ${sale.invoice_number}`,
           });
@@ -252,7 +257,7 @@ export async function DELETE(
       id: uuidv4(),
       action: 'DELETE',
       table_name: 'sales_retail',
-      record_id: params.id,
+      record_id: id,
       old_values: {
         invoice_number: sale.invoice_number,
         is_active: true,
@@ -267,7 +272,7 @@ export async function DELETE(
       success: true,
       message: 'Sale deleted and stock reverted',
       data: {
-        id: params.id,
+        id,
         invoice_number: sale.invoice_number,
       },
     });

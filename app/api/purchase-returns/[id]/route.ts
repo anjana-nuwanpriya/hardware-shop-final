@@ -3,9 +3,11 @@ import { supabase } from '@/lib/supabase';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+
     const { data, error } = await supabase
       .from('purchase_returns')
       .select(`
@@ -17,7 +19,7 @@ export async function GET(
           item:items(code, name, unit_of_measure)
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (error) throw error;

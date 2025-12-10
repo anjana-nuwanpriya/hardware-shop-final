@@ -3,9 +3,11 @@ import { supabase } from '@/lib/supabase';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+
     const { data, error } = await supabase
       .from('purchase_orders')
       .select(`
@@ -17,7 +19,7 @@ export async function GET(
           item:items(code, name, unit_of_measure)
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (error) throw error;
@@ -40,9 +42,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { status, expected_delivery_date } = body;
 
@@ -53,7 +56,7 @@ export async function PUT(
         expected_delivery_date,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (error) throw error;
 

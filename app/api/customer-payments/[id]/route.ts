@@ -3,13 +3,15 @@ import { successResponse, errorResponse } from '@/lib/api-response';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+
     const { data, error } = await supabase
-      .from('supplier_payments')
+      .from('customer_payments')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (error || !data) {
@@ -18,9 +20,9 @@ export async function GET(
 
     // Get allocations
     const { data: allocations } = await supabase
-      .from('supplier_payment_allocations')
+      .from('customer_payment_allocations')
       .select('*')
-      .eq('supplier_payment_id', params.id);
+      .eq('customer_payment_id', id);
 
     return Response.json(successResponse({ ...data, allocations }));
   } catch (error) {
