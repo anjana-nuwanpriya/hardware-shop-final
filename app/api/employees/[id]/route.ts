@@ -21,7 +21,7 @@ export async function GET(
       return notFoundResponse('Employee not found');
     }
 
-    return successResponse(data);
+    return NextResponse.json({ success: true, data });
   } catch (error) {
     return serverErrorResponse(error);
   }
