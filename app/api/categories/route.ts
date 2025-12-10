@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     // Validate input
     const validation = CategorySchema.safeParse(body);
     if (!validation.success) {
-      return validationErrorResponse(validation.error.errors);
+      return validationErrorResponse(validation.error.issues);
     }
 
     const validatedData = validation.data;
