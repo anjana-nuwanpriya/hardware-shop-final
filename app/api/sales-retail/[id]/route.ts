@@ -56,7 +56,8 @@ export async function GET(
         )
       `
       )
-      .eq('id', params.id)
+      .eq('id', id)
+      .eq('is_active', true)
       .single();
 
     if (error) {
@@ -72,9 +73,9 @@ export async function GET(
       data: sale,
     });
   } catch (error) {
-    console.error('API error:', error);
+    console.error('API Error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -82,7 +83,7 @@ export async function GET(
 
 /**
  * PATCH /api/sales-retail/[id]
- * Update sale information (payment_status, payment_method, etc.)
+ * Update sale payment status or other details
  */
 export async function PATCH(
   request: NextRequest,
@@ -91,40 +92,30 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { payment_status, payment_method, description, employee_id } = body;
 
-    // Validate payment_status if provided
-    const validStatuses = ['unpaid', 'partially_paid', 'paid'];
-    if (payment_status && !validStatuses.includes(payment_status)) {
+    // Get current sale
+    const { data: sale, error: saleError } = await supabase
+      .from('sales_retail')
+      .select('*')
+      .eq('id', id)
+      .eq('is_active', true)
+      .single();
+
+    if (saleError || !sale) {
       return NextResponse.json(
-        {
-          success: false,
-          error: `Invalid payment_status. Must be one of: ${validStatuses.join(', ')}`,
-        },
-        { status: 400 }
+        { success: false, error: 'Sale not found' },
+        { status: 404 }
       );
     }
 
-    // Get current sale for audit
-    const { data: oldSale } = await supabase
-      .from('sales_retail')
-      .select('payment_status, payment_method, description')
-      .eq('id', id)
-      .single();
-
-    // Prepare update data
-    const updateData: any = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (payment_status !== undefined) updateData.payment_status = payment_status;
-    if (payment_method !== undefined) updateData.payment_method = payment_method;
-    if (description !== undefined) updateData.description = description;
-
     // Update sale
-    const { data: updatedSale, error } = await supabase
+    const { data, error } = await supabase
       .from('sales_retail')
-      .update(updateData)
+      .update({
+        payment_status: body.payment_status || sale.payment_status,
+        payment_method: body.payment_method || sale.payment_method,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', id)
       .select()
       .single();
@@ -137,26 +128,15 @@ export async function PATCH(
       );
     }
 
-    // Log audit
-    await supabase.from('audit_logs').insert({
-      id: uuidv4(),
-      user_id: employee_id || null,
-      action: 'UPDATE',
-      table_name: 'sales_retail',
-      record_id: id,
-      old_values: oldSale,
-      new_values: updateData,
-      created_at: new Date().toISOString(),
-    });
-
     return NextResponse.json({
       success: true,
-      data: updatedSale,
+      data,
+      message: 'Sale updated successfully',
     });
   } catch (error) {
-    console.error('API error:', error);
+    console.error('API Error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -178,29 +158,32 @@ export async function DELETE(
       .from('sales_retail')
       .select(
         `
-        id,
-        invoice_number,
-        store_id,
+        *,
         sales_retail_items(
-          item_id,
-          quantity
+          *,
+          items(*)
         )
       `
       )
       .eq('id', id)
+      .eq('is_active', true)
       .single();
 
     if (saleError || !sale) {
+      console.error('Error fetching sale:', saleError);
       return NextResponse.json(
         { success: false, error: 'Sale not found' },
         { status: 404 }
       );
     }
 
-    // Soft delete: set is_active = false
+    // Soft delete the sale
     const { error: deleteError } = await supabase
       .from('sales_retail')
-      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .update({
+        is_active: false,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', id);
 
     if (deleteError) {
@@ -252,34 +235,19 @@ export async function DELETE(
       }
     }
 
-    // Log audit
-    await supabase.from('audit_logs').insert({
-      id: uuidv4(),
-      action: 'DELETE',
-      table_name: 'sales_retail',
-      record_id: id,
-      old_values: {
-        invoice_number: sale.invoice_number,
-        is_active: true,
-      },
-      new_values: {
-        is_active: false,
-      },
-      created_at: new Date().toISOString(),
-    });
-
     return NextResponse.json({
       success: true,
-      message: 'Sale deleted and stock reverted',
+      message: 'Sale deleted and stock reverted successfully',
       data: {
-        id,
+        id: sale.id,
         invoice_number: sale.invoice_number,
+        itemsReverted: sale.sales_retail_items?.length || 0,
       },
     });
   } catch (error) {
-    console.error('API error:', error);
+    console.error('API Error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }

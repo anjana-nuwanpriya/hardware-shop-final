@@ -36,7 +36,8 @@ export async function PUT(
 
     const validation = CategorySchema.safeParse(body);
     if (!validation.success) {
-      return validationErrorResponse(validation.error.errors);
+      // ✅ Fixed: Pass validation error array properly
+      return validationErrorResponse(validation.error.issues);
     }
 
     const validatedData = validation.data;
