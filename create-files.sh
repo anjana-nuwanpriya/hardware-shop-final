@@ -1,23 +1,3 @@
-# Stop the dev server first (Ctrl+C in terminal)
-# Then run these commands:
-
-# Remove the problematic folders
-rm -rf "app/(auth)" "app/(app)"
-
-# Create new structure without parentheses
-mkdir -p app/auth/login
-mkdir -p app/dashboard
-mkdir -p app/masters/categories
-mkdir -p app/masters/suppliers
-mkdir -p app/masters/customers
-mkdir -p app/masters/items
-mkdir -p app/masters/stores
-mkdir -p app/masters/employees
-mkdir -p app/stock/opening-stock
-mkdir -p app/stock/current-stock
-mkdir -p app/stock/adjustments
-mkdir -p app/sales/invoices
-mkdir -p app/sales/returns
 
 # Create auth layout
 cat > app/auth/layout.tsx << 'EOF'
