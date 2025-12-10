@@ -32,6 +32,23 @@ export function successResponse<T>(
 }
 
 /**
+ * Created Response - for successful resource creation (201)
+ */
+export function createdResponse<T>(
+  data: T,
+  message?: string
+): Response {
+  return Response.json(
+    {
+      success: true,
+      data,
+      message: message || 'Resource created successfully',
+    },
+    { status: 201 }
+  );
+}
+
+/**
  * Error Response - for general errors
  */
 export function errorResponse(
@@ -49,18 +66,21 @@ export function errorResponse(
  */
 export function validationErrorResponse(
   errors: any[]
-): ApiResponse {
+): Response {
   const formattedErrors = errors.map((error: any) => ({
     path: error.path || [],
     message: error.message || 'Validation error',
     code: error.code || 'VALIDATION_ERROR',
   }));
 
-  return {
-    success: false,
-    error: 'Validation failed',
-    errors: formattedErrors,
-  };
+  return Response.json(
+    {
+      success: false,
+      error: 'Validation failed',
+      errors: formattedErrors,
+    },
+    { status: 400 }
+  );
 }
 
 /**
