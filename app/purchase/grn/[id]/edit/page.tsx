@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
 interface GRNData {
   id: string;
@@ -14,8 +13,7 @@ interface GRNData {
 
 export default function GRNEditPage() {
   const router = useRouter();
-  const params = useParams();
-  const id = params.id as string;
+  const { id } = useParams();
   const [grn, setGrn] = useState<GRNData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

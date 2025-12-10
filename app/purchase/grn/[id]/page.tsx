@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
 interface GRNDetail {
   id: string;
@@ -20,8 +19,7 @@ interface GRNDetail {
 
 export default function GRNDetailPage() {
   const router = useRouter();
-  const params = useParams();
-  const id = params.id as string;
+  const { id } = useParams();
   const [grn, setGrn] = useState<GRNDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [outstanding, setOutstanding] = useState<any>(null);

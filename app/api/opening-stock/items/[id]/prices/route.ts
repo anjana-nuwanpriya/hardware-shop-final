@@ -20,10 +20,10 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { cost_price, retail_price, wholesale_price, employee_id } = body;
 

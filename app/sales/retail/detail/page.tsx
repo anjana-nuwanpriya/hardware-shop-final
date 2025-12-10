@@ -69,7 +69,7 @@ interface Sale {
   sales_retail_items?: SaleItem[];
 }
 
-export default function SaleDetailPage({ params }: { params: { id: string } }) {
+export default function SaleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [sale, setSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState(true);
