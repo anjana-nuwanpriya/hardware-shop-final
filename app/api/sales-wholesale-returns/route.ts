@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('date_to');
 
     let query = supabase
-      .from('sales_returns')
+      .from('sales_wholesale_returns')
       .select(
         `
         id,
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         return_date,
         customer_id,
         store_id,
-        sales_retail_id,
+        sales_wholesale_id,
         return_reason,
         refund_method,
         total_refund_amount,
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     const {
       customer_id,
       store_id,
-      sales_retail_id,
+      sales_wholesale_id,
       employee_id,
       return_reason,
       refund_method,
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     // Get next return number
     const { data: lastReturn } = await supabase
-      .from('sales_returns')
+      .from('sales_wholesale_returns')
       .select('return_number')
       .order('created_at', { ascending: false })
       .limit(1);
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       nextNumber = lastNum + 1;
     }
 
-    const returnNumber = `SRET-${String(nextNumber).padStart(6, '0')}`;
+    const returnNumber = `WRET-${String(nextNumber).padStart(6, '0')}`;
 
     // Calculate total refund
     let totalRefund = 0;
@@ -124,16 +124,16 @@ export async function POST(request: NextRequest) {
     // Start transaction
     const returnId = uuidv4();
 
-    // Create sales_returns record
-    const { error: returnError } = await supabase.from('sales_returns').insert({
+    // Create sales_wholesale_returns record
+    const { error: returnError } = await supabase.from('sales_wholesale_returns').insert({
       id: returnId,
       return_number: returnNumber,
       customer_id,
       store_id,
-      sales_retail_id: sales_retail_id || null,
+      sales_wholesale_id: sales_wholesale_id || null,
       employee_id: employee_id || null,
       return_reason,
-      refund_method: refund_method || 'cash',
+      refund_method: refund_method || 'bank_transfer',
       total_refund_amount: totalRefund,
       description: description || null,
       is_active: true,
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
 
     // Create line items
     const lineItemsToInsert = items.map((item: any) => ({
-      sales_return_id: returnId,
+      sales_wholesale_return_id: returnId,
       item_id: item.item_id,
       batch_no: item.batch_no || null,
       original_qty: item.original_qty || item.return_qty,
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
     }));
 
     const { error: itemsError } = await supabase
-      .from('sales_return_items')
+      .from('sales_wholesale_return_items')
       .insert(lineItemsToInsert);
 
     if (itemsError) {
@@ -201,8 +201,8 @@ export async function POST(request: NextRequest) {
           quantity: item.return_qty,
           batch_no: item.batch_no || null,
           reference_id: returnId,
-          reference_type: 'sales_returns',
-          notes: `Retail return ${returnNumber}`,
+          reference_type: 'sales_wholesale_returns',
+          notes: `Wholesale return ${returnNumber}`,
           created_by: employee_id || null,
         });
 
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
     await supabase.from('audit_logs').insert({
       user_id: employee_id || null,
       action: 'CREATE',
-      table_name: 'sales_returns',
+      table_name: 'sales_wholesale_returns',
       record_id: returnId,
       new_values: {
         return_number: returnNumber,

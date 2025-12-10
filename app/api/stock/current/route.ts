@@ -1,100 +1,144 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const store = searchParams.get('store') || 'Main Store';
-    const category = searchParams.get('category');
-    const status = searchParams.get('status');
+    const storeName = searchParams.get('store') || 'Main Store';
     const search = searchParams.get('search')?.toLowerCase();
+    const status = searchParams.get('status');
 
-    // Mock data - Replace with actual database query
-    const allItems = [
-      {
-        id: '1',
-        item_code: 'ITM001',
-        item_name: 'Hammer',
-        category_name: 'Hand Tools',
-        quantity_on_hand: 50,
-        reorder_level: 20,
-        cost_price: 150,
-        status: 'OK' as const,
-        valuation: 7500,
-        last_restock_date: '2025-12-01',
-      },
-      {
-        id: '2',
-        item_code: 'ITM002',
-        item_name: 'Screwdriver Set',
-        category_name: 'Hand Tools',
-        quantity_on_hand: 15,
-        reorder_level: 20,
-        cost_price: 200,
-        status: 'LOW' as const,
-        valuation: 3000,
-        last_restock_date: '2025-11-20',
-      },
-      {
-        id: '3',
-        item_code: 'ITM003',
-        item_name: 'Drill Machine',
-        category_name: 'Power Tools',
-        quantity_on_hand: 5,
-        reorder_level: 10,
-        cost_price: 5000,
-        status: 'CRITICAL' as const,
-        valuation: 25000,
-        last_restock_date: '2025-10-15',
-      },
-      {
-        id: '4',
-        item_code: 'ITM004',
-        item_name: 'Nails Pack',
-        category_name: 'Hardware',
-        quantity_on_hand: 0,
-        reorder_level: 50,
-        cost_price: 10,
-        status: 'OUT_OF_STOCK' as const,
-        valuation: 0,
-        last_restock_date: '2025-09-01',
-      },
-    ];
+    // Step 1: Get store ID by name
+    const { data: storeData, error: storeError } = await supabase
+      .from('stores')
+      .select('id')
+      .eq('name', storeName)
+      .eq('is_active', true)
+      .single();
 
-    // Filter items
-    let filtered = allItems;
-
-    if (search) {
-      filtered = filtered.filter(
-        (item) =>
-          item.item_code.toLowerCase().includes(search) ||
-          item.item_name.toLowerCase().includes(search)
+    if (storeError || !storeData) {
+      return NextResponse.json(
+        { success: false, error: `Store "${storeName}" not found` },
+        { status: 404 }
       );
     }
 
-    if (category) {
-      filtered = filtered.filter((item) => item.category_name === category);
+    const storeId = storeData.id;
+
+    // Step 2: Get all stock with item details
+    const { data: stockData, error: stockError } = await supabase
+      .from('item_store_stock')
+      .select(
+        `
+        id,
+        item_id,
+        quantity_on_hand,
+        reserved_quantity,
+        last_restock_date,
+        items(
+          id,
+          code,
+          name,
+          category_id,
+          cost_price,
+          retail_price,
+          wholesale_price,
+          reorder_level,
+          unit_of_measure,
+          categories(name)
+        )
+        `
+      )
+      .eq('store_id', storeId)
+      .order('items(code)');
+
+    if (stockError) {
+      console.error('Stock fetch error:', stockError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to fetch stock' },
+        { status: 500 }
+      );
     }
 
-    if (status && status !== 'all') {
-      filtered = filtered.filter((item) => item.status === status);
-    }
+    // Step 3: Transform data and determine status
+    const items = (stockData || [])
+      .map((stock: any) => {
+        const item = stock.items;
+        const qtyOnHand = Number(stock.quantity_on_hand) || 0;
+        const reserved = Number(stock.reserved_quantity) || 0;
+        const available = qtyOnHand - reserved;
+        const reorderLevel = item?.reorder_level || 10;
 
-    // Calculate summary
+        // Determine status
+        let itemStatus: 'OK' | 'LOW' | 'CRITICAL' | 'OUT_OF_STOCK' = 'OK';
+        if (qtyOnHand === 0) {
+          itemStatus = 'OUT_OF_STOCK';
+        } else if (qtyOnHand <= reorderLevel / 2) {
+          itemStatus = 'CRITICAL';
+        } else if (qtyOnHand <= reorderLevel) {
+          itemStatus = 'LOW';
+        }
+
+        return {
+          id: stock.id,
+          item_id: item?.id,
+          item_code: item?.code || 'N/A',
+          item_name: item?.name || 'N/A',
+          category_name: item?.categories?.name || 'Uncategorized',
+          quantity_on_hand: qtyOnHand,
+          reserved_quantity: reserved,
+          available_quantity: available,
+          reorder_level: reorderLevel,
+          cost_price: Number(item?.cost_price) || 0,
+          retail_price: Number(item?.retail_price) || 0,
+          wholesale_price: Number(item?.wholesale_price) || 0,
+          unit_of_measure: item?.unit_of_measure || 'piece',
+          cost_valuation: qtyOnHand * (Number(item?.cost_price) || 0),
+          retail_valuation: qtyOnHand * (Number(item?.retail_price) || 0),
+          status: itemStatus,
+          last_restock_date: stock.last_restock_date,
+          profit_margin_per_unit: (Number(item?.retail_price) || 0) - (Number(item?.cost_price) || 0),
+          profit_margin_total: available * ((Number(item?.retail_price) || 0) - (Number(item?.cost_price) || 0)),
+        };
+      })
+      .filter((item: any) => {
+        // Search filter
+        if (search) {
+          const matchesSearch =
+            item.item_code.toLowerCase().includes(search) ||
+            item.item_name.toLowerCase().includes(search) ||
+            item.category_name.toLowerCase().includes(search);
+          if (!matchesSearch) return false;
+        }
+
+        // Status filter
+        if (status && status !== 'all' && item.status !== status) {
+          return false;
+        }
+
+        return true;
+      });
+
+    // Step 4: Calculate summary
     const summary = {
-      total_items: filtered.length,
-      total_qty: filtered.reduce((sum, item) => sum + item.quantity_on_hand, 0),
-      total_valuation: filtered.reduce((sum, item) => sum + item.valuation, 0),
+      total_items: items.length,
+      total_quantity_on_hand: items.reduce((sum: number, item: any) => sum + item.quantity_on_hand, 0),
+      total_reserved_quantity: items.reduce((sum: number, item: any) => sum + item.reserved_quantity, 0),
+      total_available_quantity: items.reduce((sum: number, item: any) => sum + item.available_quantity, 0),
+      total_cost_valuation: items.reduce((sum: number, item: any) => sum + item.cost_valuation, 0),
+      total_retail_valuation: items.reduce((sum: number, item: any) => sum + item.retail_valuation, 0),
+      total_profit_margin: items.reduce((sum: number, item: any) => sum + item.profit_margin_total, 0),
       by_status: {
-        ok_count: filtered.filter((i) => i.status === 'OK').length,
-        low_count: filtered.filter((i) => i.status === 'LOW').length,
-        critical_count: filtered.filter((i) => i.status === 'CRITICAL').length,
-        out_of_stock_count: filtered.filter((i) => i.status === 'OUT_OF_STOCK').length,
+        ok_count: items.filter((i: any) => i.status === 'OK').length,
+        low_count: items.filter((i: any) => i.status === 'LOW').length,
+        critical_count: items.filter((i: any) => i.status === 'CRITICAL').length,
+        out_of_stock_count: items.filter((i: any) => i.status === 'OUT_OF_STOCK').length,
       },
     };
 
     return NextResponse.json({
       success: true,
-      data: filtered,
+      data: items,
       summary,
     });
   } catch (error) {

@@ -27,7 +27,7 @@ interface Customer {
   name: string;
 }
 
-export default function SalesReturnsPage() {
+export default function WholesaleReturnsPage() {
   const [returns, setReturns] = useState<Return[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -71,7 +71,7 @@ export default function SalesReturnsPage() {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch('/api/customers');
+      const res = await fetch('/api/customers?type=wholesale');
       const data = await res.json();
       if (data.data) {
         setCustomers(data.data);
@@ -90,7 +90,7 @@ export default function SalesReturnsPage() {
       if (dateFrom) params.append('date_from', dateFrom);
       if (dateTo) params.append('date_to', dateTo);
 
-      const url = `/api/sales-returns${params.toString() ? '?' + params.toString() : ''}`;
+      const url = `/api/sales-wholesale-returns${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url);
       const data = await res.json();
 
@@ -114,8 +114,8 @@ export default function SalesReturnsPage() {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Retail Sales Returns</h1>
-        <p className="text-gray-600 text-sm mt-1">Manage retail customer returns and refunds</p>
+        <h1 className="text-3xl font-bold">Wholesale Sales Returns</h1>
+        <p className="text-gray-600 text-sm mt-1">Manage wholesale customer returns and refunds</p>
       </div>
 
       {/* Success Message */}
@@ -134,9 +134,9 @@ export default function SalesReturnsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
           <p className="text-sm text-gray-600">Total Refunds</p>
-          <p className="text-2xl font-bold text-blue-600">
+          <p className="text-2xl font-bold text-purple-600">
             Rs. {stats.total.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
           </p>
         </div>
@@ -154,7 +154,7 @@ export default function SalesReturnsPage() {
             <select
               value={storeId}
               onChange={(e) => setStoreId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="">All Stores</option>
               {stores.map(store => (
@@ -170,7 +170,7 @@ export default function SalesReturnsPage() {
             <select
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="">All Customers</option>
               {customers.map(customer => (
@@ -187,7 +187,7 @@ export default function SalesReturnsPage() {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
 
@@ -197,13 +197,13 @@ export default function SalesReturnsPage() {
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
 
           <Link
-            href="/sales/returns/new"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-medium text-center"
+            href="/sales/wholesale-returns/new"
+            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 font-medium text-center"
           >
             + New Return
           </Link>
@@ -234,8 +234,8 @@ export default function SalesReturnsPage() {
               <tbody>
                 {returns.map(ret => (
                   <tr key={ret.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-blue-600">
-                      <Link href={`/sales/returns/${ret.id}`} className="hover:underline">
+                    <td className="px-4 py-3 text-sm font-medium text-purple-600">
+                      <Link href={`/sales/wholesale-returns/${ret.id}`} className="hover:underline">
                         {ret.return_number}
                       </Link>
                     </td>
@@ -251,8 +251,8 @@ export default function SalesReturnsPage() {
                     <td className="px-4 py-3 text-sm text-gray-600">{ret.refund_method}</td>
                     <td className="px-4 py-3 text-sm">
                       <Link
-                        href={`/sales/returns/${ret.id}`}
-                        className="text-blue-600 hover:text-blue-800 font-medium"
+                        href={`/sales/wholesale-returns/${ret.id}`}
+                        className="text-purple-600 hover:text-purple-800 font-medium"
                       >
                         View
                       </Link>

@@ -6,7 +6,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const { id } = params;
 
     const { data, error } = await supabase
-      .from('sales_returns')
+      .from('sales_wholesale_returns')
       .select(
         `
         id,
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         return_date,
         customer_id,
         store_id,
-        sales_retail_id,
+        sales_wholesale_id,
         return_reason,
         refund_method,
         total_refund_amount,
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         customers(id, name, phone, email),
         stores(id, code, name),
         employees(id, name),
-        sales_return_items(
+        sales_wholesale_return_items(
           id,
           item_id,
           batch_no,
@@ -71,7 +71,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (description !== undefined) updateData.description = description;
 
     const { data, error } = await supabase
-      .from('sales_returns')
+      .from('sales_wholesale_returns')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -85,7 +85,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     // Create audit log
     await supabase.from('audit_logs').insert({
       action: 'UPDATE',
-      table_name: 'sales_returns',
+      table_name: 'sales_wholesale_returns',
       record_id: id,
       new_values: updateData,
     });
@@ -103,7 +103,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     // Get the return first
     const { data: returnData, error: getError } = await supabase
-      .from('sales_returns')
+      .from('sales_wholesale_returns')
       .select('*')
       .eq('id', id)
       .single();
@@ -114,9 +114,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     // Get all items in the return
     const { data: items, error: itemsError } = await supabase
-      .from('sales_return_items')
+      .from('sales_wholesale_return_items')
       .select('*')
-      .eq('sales_return_id', id);
+      .eq('sales_wholesale_return_id', id);
 
     if (itemsError) {
       console.error('Items fetch error:', itemsError);
@@ -152,7 +152,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
           quantity: -item.return_qty,
           batch_no: item.batch_no || null,
           reference_id: id,
-          reference_type: 'sales_returns',
+          reference_type: 'sales_wholesale_returns',
           notes: `Reversal of return ${returnData.return_number}`,
         });
       }
@@ -160,7 +160,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     // Soft delete the return
     const { error: deleteError } = await supabase
-      .from('sales_returns')
+      .from('sales_wholesale_returns')
       .update({ is_active: false })
       .eq('id', id);
 
@@ -172,7 +172,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     // Create audit log
     await supabase.from('audit_logs').insert({
       action: 'DELETE',
-      table_name: 'sales_returns',
+      table_name: 'sales_wholesale_returns',
       record_id: id,
       old_values: returnData,
     });
