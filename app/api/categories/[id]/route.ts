@@ -1,9 +1,10 @@
+import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { CategorySchema } from '@/lib/validation';
-import { successResponse, notFoundResponse, validationErrorResponse, serverErrorResponse } from '@/lib/api-response';
+import { notFoundResponse, validationErrorResponse, serverErrorResponse } from '@/lib/api-response';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -27,7 +28,7 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -36,7 +37,6 @@ export async function PUT(
 
     const validation = CategorySchema.safeParse(body);
     if (!validation.success) {
-      // ✅ Fixed: Pass validation error array properly
       return validationErrorResponse(validation.error.issues);
     }
 
@@ -85,14 +85,18 @@ export async function PUT(
       return serverErrorResponse(error);
     }
 
-    return successResponse(data, 'Category updated successfully');
+    return NextResponse.json({
+      success: true,
+      data,
+      message: 'Category updated successfully'
+    });
   } catch (error) {
     return serverErrorResponse(error);
   }
 }
 
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -123,7 +127,11 @@ export async function PATCH(
       return serverErrorResponse(error);
     }
 
-    return successResponse(data, 'Category deleted successfully');
+    return NextResponse.json({
+      success: true,
+      data,
+      message: 'Category deleted successfully'
+    });
   } catch (error) {
     return serverErrorResponse(error);
   }
