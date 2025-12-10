@@ -236,8 +236,7 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { data: grn, error: grnError } = await supabase
       .from('purchase_grns')
@@ -298,8 +297,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const body = await request.json();
     const { invoice_number, invoice_date, description } = body;
@@ -345,8 +343,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     // Get GRN details
     const { data: grn } = await supabase
@@ -435,8 +432,7 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { data: grn } = await supabase
       .from('purchase_grns')
@@ -483,8 +479,7 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { data: grns } = await supabase
       .from('purchase_grns')
@@ -1754,8 +1749,7 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { data: grn, error: grnError } = await supabase
       .from('purchase_grns')
@@ -1816,8 +1810,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const body = await request.json();
     const { invoice_number, invoice_date, description } = body;
@@ -1863,8 +1856,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     // Get GRN details
     const { data: grn } = await supabase
@@ -1953,8 +1945,7 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { data: grn } = await supabase
       .from('purchase_grns')
@@ -2001,8 +1992,7 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { data: grns } = await supabase
       .from('purchase_grns')

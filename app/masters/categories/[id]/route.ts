@@ -4,8 +4,7 @@ import { successResponse, notFoundResponse, validationErrorResponse, serverError
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
     const { data, error } = await supabase
@@ -27,8 +26,7 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -100,8 +98,7 @@ export async function PUT(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
     

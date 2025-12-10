@@ -13,8 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
 
@@ -182,8 +181,7 @@ export async function GET(
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
     const body = await req.json();
@@ -258,8 +256,7 @@ export async function POST(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
     const { searchParams } = new URL(req.url);

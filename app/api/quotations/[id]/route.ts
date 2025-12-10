@@ -3,8 +3,7 @@ import { successResponse, errorResponse } from '@/lib/api-response';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
 

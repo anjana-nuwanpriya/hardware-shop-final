@@ -20,8 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
     const body = await request.json();

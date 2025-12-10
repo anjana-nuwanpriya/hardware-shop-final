@@ -5,8 +5,7 @@ import { successResponse, notFoundResponse, serverErrorResponse } from '@/lib/ap
 // GET /api/customers/[id]
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
 
@@ -30,8 +29,7 @@ export async function GET(
 // PUT /api/customers/[id]
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -86,8 +84,7 @@ export async function PUT(
 // PATCH /api/customers/[id] - Soft delete
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
 
