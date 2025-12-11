@@ -70,6 +70,7 @@ export default function Sidebar() {
               {menuItem('Suppliers', '/masters/suppliers')}
               {menuItem('Supplier OP Balance', '/masters/supplier-opening-balance')}
               {menuItem('Customers', '/masters/customers')}
+              {menuItem('Customer OP Balance', '/masters/customer-opening-balance')}
               {menuItem('Items', '/masters/items')}
               {menuItem('Stores', '/masters/stores')}
               {menuItem('Categories', '/masters/categories')}

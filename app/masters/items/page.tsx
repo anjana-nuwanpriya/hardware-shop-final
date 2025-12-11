@@ -170,33 +170,33 @@ export default function ItemsPage() {
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Items/Products</h1>
+    <div className="p-3">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-bold">Items/Products</h1>
         <button
           onClick={() => {
             setEditingId(null);
             reset();
             setIsModalOpen(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          className="bg-blue-600 text-white px-4 py-1 rounded text-xs font-semibold hover:bg-blue-700 transition"
         >
           + Add Item
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
         <input
           type="text"
           placeholder="Search items by code, name, or barcode..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">All Categories</option>
           {categories.map((cat) => (
@@ -208,61 +208,66 @@ export default function ItemsPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-100 text-red-700 rounded-lg mb-4">
+        <div className="p-3 bg-red-100 text-red-700 rounded text-xs mb-3">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-6">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="text-gray-600 mt-2 text-xs">Loading...</p>
+        </div>
       ) : items.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-6 text-gray-500 text-xs">
           No items found. Create one to get started!
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+        <div className="bg-white rounded shadow overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-gray-100 border-b">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-700">Code</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-700">Name</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-700">Category</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">Cost</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">Retail</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">Wholesale</th>
-                <th className="px-4 py-3 text-center font-medium text-gray-700">Tax</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-700">Actions</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Code</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Name</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Category</th>
+                <th className="px-3 py-2 text-right font-semibold text-gray-700">Cost</th>
+                <th className="px-3 py-2 text-right font-semibold text-gray-700">Retail</th>
+                <th className="px-3 py-2 text-right font-semibold text-gray-700">Wholesale</th>
+                <th className="px-3 py-2 text-center font-semibold text-gray-700">Tax</th>
+                <th className="px-3 py-2 text-right font-semibold text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
                 <tr key={item.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{item.code}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{item.name}</td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-3 py-2 font-medium text-gray-900">{item.code}</td>
+                  <td className="px-3 py-2 font-medium text-gray-900">{item.name}</td>
+                  <td className="px-3 py-2 text-gray-600">
                     {categories.find((c) => c.id === item.category_id)?.name || '-'}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-600">Rs. {item.cost_price.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-gray-600">Rs. {item.retail_price.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-gray-600">Rs. {item.wholesale_price.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                  <td className="px-3 py-2 text-right text-gray-600">Rs. {item.cost_price.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right text-gray-600">Rs. {item.retail_price.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right text-gray-600">Rs. {item.wholesale_price.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-center">
+                    <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                       {item.tax_method} {item.tax_rate > 0 ? `${item.tax_rate}%` : ''}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleEdit(item)}
-                      className="text-blue-600 hover:text-blue-800 mr-3"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(item.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      Delete
-                    </button>
+                  <td className="px-3 py-2 text-right">
+                    <div className="flex justify-end gap-1">
+                      <button
+                        onClick={() => handleEdit(item)}
+                        className="text-blue-600 hover:text-blue-800 font-semibold text-xs"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(item.id)}
+                        className="text-red-600 hover:text-red-800 font-semibold text-xs"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -272,59 +277,59 @@ export default function ItemsPage() {
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-6">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-3">
+          <div className="bg-white rounded shadow p-4 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-bold mb-3">
               {editingId ? 'Edit Item' : 'Create Item'}
             </h2>
 
             {error && (
-              <div className="p-3 bg-red-100 text-red-700 rounded-lg mb-4 text-sm">
+              <div className="p-2 bg-red-100 text-red-700 rounded text-xs mb-3">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">Code *</label>
                   <input
                     {...register('code')}
                     type="text"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Item code"
                   />
-                  {errors.code && <p className="text-red-500 text-sm mt-1">{errors.code.message}</p>}
+                  {errors.code && <p className="text-red-500 text-xs mt-0.5">{errors.code.message}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">Name *</label>
                   <input
                     {...register('name')}
                     type="text"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Item name"
                   />
-                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+                  {errors.name && <p className="text-red-500 text-xs mt-0.5">{errors.name.message}</p>}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Description</label>
                 <textarea
                   {...register('description')}
                   rows={2}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Item description"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">Category *</label>
                   <select
                     {...register('category_id')}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select Category</option>
                     {categories.map((cat) => (
@@ -336,89 +341,89 @@ export default function ItemsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit of Measure</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">Unit of Measure</label>
                   <input
                     {...register('unit_of_measure')}
                     type="text"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., piece"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Cost Price *</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">Cost Price *</label>
                   <input
                     {...register('cost_price', { valueAsNumber: true })}
                     type="number"
                     step="0.01"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="0"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Retail Price *</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">Retail Price *</label>
                   <input
                     {...register('retail_price', { valueAsNumber: true })}
                     type="number"
                     step="0.01"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="0"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Wholesale Price *</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">Wholesale Price *</label>
                   <input
                     {...register('wholesale_price', { valueAsNumber: true })}
                     type="number"
                     step="0.01"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="0"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Barcode</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">Barcode</label>
                   <input
                     {...register('barcode')}
                     type="text"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Barcode"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">HSN Code</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">HSN Code</label>
                   <input
                     {...register('hsn_code')}
                     type="text"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="HSN code"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Reorder Level</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">Reorder Level</label>
                   <input
                     {...register('reorder_level', { valueAsNumber: true })}
                     type="number"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="0"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tax Method *</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">Tax Method *</label>
                   <select
                     {...register('tax_method')}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {TAX_METHODS.map((method) => (
                       <option key={method} value={method}>
@@ -429,32 +434,32 @@ export default function ItemsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-0.5">Tax Rate (%)</label>
                   <input
                     {...register('tax_rate', { valueAsNumber: true })}
                     type="number"
                     step="0.01"
                     min="0"
                     max="100"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="0"
                   />
                 </div>
               </div>
 
-              <div className="flex gap-3 justify-end pt-4 border-t">
+              <div className="flex gap-2 justify-end pt-3 border-t">
                 <button
                   type="button"
                   onClick={handleCancel}
                   disabled={isSubmitting}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition"
+                  className="px-3 py-1 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition text-xs font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                  className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition text-xs font-semibold"
                 >
                   {isSubmitting ? 'Saving...' : 'Save'}
                 </button>
@@ -465,24 +470,24 @@ export default function ItemsPage() {
       )}
 
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-sm w-full">
-            <h2 className="text-xl font-bold mb-4">Delete Item?</h2>
-            <p className="text-gray-600 mb-6">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-3">
+          <div className="bg-white rounded shadow p-4 max-w-sm w-full">
+            <h2 className="text-lg font-bold mb-2">Delete Item?</h2>
+            <p className="text-gray-600 mb-4 text-xs">
               Are you sure you want to delete this item? This action cannot be undone.
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setDeleteConfirm(null)}
                 disabled={isSubmitting}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition"
+                className="px-3 py-1 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition text-xs font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
+                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition text-xs font-semibold"
               >
                 {isSubmitting ? 'Deleting...' : 'Delete'}
               </button>

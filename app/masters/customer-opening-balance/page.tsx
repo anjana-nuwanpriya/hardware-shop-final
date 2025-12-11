@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-interface SupplierOpeningBalance {
+interface CustomerOpeningBalance {
   id: string;
   entry_number: string;
   entry_date: string;
-  supplier_id: string;
-  supplier_name?: string;
+  customer_id: string;
+  customer_name?: string;
   amount: number;
-  balance_type: 'payable' | 'advance';
+  balance_type: 'receivable' | 'advance';
   notes: string | null;
   employee_id: string | null;
   employee_name?: string;
@@ -19,32 +19,32 @@ interface SupplierOpeningBalance {
   created_at: string;
 }
 
-export default function SupplierOpeningBalancePage() {
+export default function CustomerOpeningBalancePage() {
   const router = useRouter();
-  const [balances, setBalances] = useState<SupplierOpeningBalance[]>([]);
+  const [balances, setBalances] = useState<CustomerOpeningBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Filters
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [selectedSupplier, setSelectedSupplier] = useState('');
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState('');
   const [balanceType, setBalanceType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetchSuppliers();
+    fetchCustomers();
     fetchBalances();
   }, []);
 
-  const fetchSuppliers = async () => {
+  const fetchCustomers = async () => {
     try {
-      const response = await fetch('/api/suppliers?limit=1000');
+      const response = await fetch('/api/customers?limit=1000');
       const result = await response.json();
       if (result.success) {
-        setSuppliers(result.data || []);
+        setCustomers(result.data || []);
       }
     } catch (err) {
-      console.error('Failed to fetch suppliers:', err);
+      console.error('Failed to fetch customers:', err);
     }
   };
 
@@ -53,9 +53,9 @@ export default function SupplierOpeningBalancePage() {
       setLoading(true);
       setError(null);
 
-      let url = '/api/supplier-opening-balance?limit=100';
-      if (selectedSupplier) {
-        url += `&supplier_id=${selectedSupplier}`;
+      let url = '/api/customer-opening-balance?limit=100';
+      if (selectedCustomer) {
+        url += `&customer_id=${selectedCustomer}`;
       }
       if (balanceType !== 'all') {
         url += `&balance_type=${balanceType}`;
@@ -80,7 +80,7 @@ export default function SupplierOpeningBalancePage() {
   };
 
   const handleReset = () => {
-    setSelectedSupplier('');
+    setSelectedCustomer('');
     setBalanceType('all');
     setSearchTerm('');
     setBalances([]);
@@ -91,7 +91,7 @@ export default function SupplierOpeningBalancePage() {
     if (!confirm('Are you sure? This will mark the entry as inactive.')) return;
 
     try {
-      const response = await fetch(`/api/supplier-opening-balance/${id}`, {
+      const response = await fetch(`/api/customer-opening-balance/${id}`, {
         method: 'DELETE',
       });
 
@@ -107,16 +107,16 @@ export default function SupplierOpeningBalancePage() {
   };
 
   const getBalanceTypeBadge = (type: string) => {
-    if (type === 'payable') {
+    if (type === 'receivable') {
       return (
-        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
-          We Owe
+        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+          They Owe Us
         </span>
       );
     }
     return (
-      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-        They Owe
+      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
+        We Owe
       </span>
     );
   };
@@ -133,7 +133,7 @@ export default function SupplierOpeningBalancePage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-4">
-          <h1 className="text-xl font-bold text-gray-900">Supplier Opening Balances</h1>
+          <h1 className="text-xl font-bold text-gray-900">Customer Opening Balances</h1>
           <p className="text-xs text-gray-600 mt-1">
             Manage outstanding balances from before system migration
           </p>
@@ -142,7 +142,7 @@ export default function SupplierOpeningBalancePage() {
         {/* Create Button */}
         <div className="mb-3">
           <button
-            onClick={() => router.push('/masters/supplier-opening-balance/new')}
+            onClick={() => router.push('/masters/customer-opening-balance/new')}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded text-xs"
           >
             + Create Opening Balance
@@ -166,18 +166,18 @@ export default function SupplierOpeningBalancePage() {
               />
             </div>
 
-            {/* Supplier Filter */}
+            {/* Customer Filter */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Supplier</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Customer</label>
               <select
-                value={selectedSupplier}
-                onChange={(e) => setSelectedSupplier(e.target.value)}
+                value={selectedCustomer}
+                onChange={(e) => setSelectedCustomer(e.target.value)}
                 className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">All Suppliers</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
+                <option value="">All Customers</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
                   </option>
                 ))}
               </select>
@@ -194,8 +194,8 @@ export default function SupplierOpeningBalancePage() {
                 className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Types</option>
-                <option value="payable">We Owe (Payable)</option>
-                <option value="advance">They Owe (Advance)</option>
+                <option value="receivable">They Owe Us (Receivable)</option>
+                <option value="advance">We Owe (Advance)</option>
               </select>
             </div>
 
@@ -222,21 +222,21 @@ export default function SupplierOpeningBalancePage() {
         {/* Summary Cards */}
         {balances.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
-              <p className="text-gray-600 text-xs">We Owe (Payable)</p>
-              <p className="text-lg font-bold text-red-600">
-                Rs. {getTotalAmount('payable')}
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+              <p className="text-gray-600 text-xs">They Owe Us (Receivable)</p>
+              <p className="text-lg font-bold text-blue-600">
+                Rs. {getTotalAmount('receivable')}
               </p>
             </div>
-            <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded">
-              <p className="text-gray-600 text-xs">They Owe (Advance)</p>
-              <p className="text-lg font-bold text-green-600">
+            <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
+              <p className="text-gray-600 text-xs">We Owe (Advance)</p>
+              <p className="text-lg font-bold text-purple-600">
                 Rs. {getTotalAmount('advance')}
               </p>
             </div>
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+            <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded">
               <p className="text-gray-600 text-xs">Total Entries</p>
-              <p className="text-lg font-bold text-blue-600">{balances.length}</p>
+              <p className="text-lg font-bold text-green-600">{balances.length}</p>
             </div>
           </div>
         )}
@@ -267,7 +267,7 @@ export default function SupplierOpeningBalancePage() {
                   </th>
                   <th className="px-3 py-2 text-left font-semibold text-gray-700">Date</th>
                   <th className="px-3 py-2 text-left font-semibold text-gray-700">
-                    Supplier
+                    Customer
                   </th>
                   <th className="px-3 py-2 text-left font-semibold text-gray-700">Type</th>
                   <th className="px-3 py-2 text-right font-semibold text-gray-700">
@@ -292,7 +292,7 @@ export default function SupplierOpeningBalancePage() {
                         day: 'numeric',
                       })}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">{balance.supplier_name}</td>
+                    <td className="px-3 py-2 text-gray-600">{balance.customer_name}</td>
                     <td className="px-3 py-2">{getBalanceTypeBadge(balance.balance_type)}</td>
                     <td className="px-3 py-2 font-semibold text-right">
                       Rs.{' '}
@@ -307,7 +307,7 @@ export default function SupplierOpeningBalancePage() {
                     <td className="px-3 py-2 text-center">
                       <div className="flex justify-center gap-1">
                         <Link
-                          href={`/masters/supplier-opening-balance/${balance.id}`}
+                          href={`/masters/customer-opening-balance/${balance.id}`}
                           className="text-blue-600 hover:text-blue-800 font-semibold text-xs"
                         >
                           View
@@ -329,12 +329,12 @@ export default function SupplierOpeningBalancePage() {
 
         {/* Empty State */}
         {!loading && balances.length === 0 && (
-          <div className="bg-white rounded shadow p-8 text-center">
+          <div className="bg-white rounded shadow p-6 text-center">
             <p className="text-gray-600 text-sm">
               No opening balances found. Create one to get started!
             </p>
             <button
-              onClick={() => router.push('/masters/supplier-opening-balance/new')}
+              onClick={() => router.push('/masters/customer-opening-balance/new')}
               className="mt-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded text-xs"
             >
               Create First Entry

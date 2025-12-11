@@ -16,10 +16,10 @@ export default function Navbar() {
   };
 
   return (
-    <div className="bg-white border-b border-gray-200 px-8 py-4 flex justify-end">
+    <div className="bg-white border-b border-gray-200 px-6 py-1.5 flex justify-end">
       <button
         onClick={handleLogout}
-        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-medium text-sm"
+        className="bg-red-600 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-red-700 transition"
       >
         Logout
       </button>
