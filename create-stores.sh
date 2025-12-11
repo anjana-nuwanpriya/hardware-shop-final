@@ -1,14 +1,15 @@
 
 cat > "$PROJECT_ROOT/app/api/purchase-grns/route.ts" << 'APIEOF'
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { searchParams } = new URL(request.url);
     const supplier_id = searchParams.get('supplier_id');
@@ -227,16 +228,15 @@ APIEOF
 # Create GRN Detail API
 cat > "$PROJECT_ROOT/app/api/purchase-grns/[id]/route.ts" << 'APIEOF'
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { data: grn, error: grnError } = await supabase
       .from('purchase_grns')
@@ -297,7 +297,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }) {
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const body = await request.json();
     const { invoice_number, invoice_date, description } = body;
@@ -343,7 +343,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }) {
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     // Get GRN details
     const { data: grn } = await supabase
@@ -423,16 +423,15 @@ APIEOF
 # Create GRN Outstanding API
 cat > "$PROJECT_ROOT/app/api/purchase-grns/[id]/outstanding/route.ts" << 'APIEOF'
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { data: grn } = await supabase
       .from('purchase_grns')
@@ -470,16 +469,15 @@ APIEOF
 # Create Supplier Outstanding GRNs API
 cat > "$PROJECT_ROOT/app/api/suppliers/[id]/outstanding-grns/route.ts" << 'APIEOF'
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { data: grns } = await supabase
       .from('purchase_grns')
@@ -1514,14 +1512,15 @@ PROJECT_ROOT="."
 # Create GRN LIST API
 cat > "$PROJECT_ROOT/app/api/purchase-grns/route.ts" << 'APIEOF'
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { searchParams } = new URL(request.url);
     const supplier_id = searchParams.get('supplier_id');
@@ -1740,16 +1739,15 @@ APIEOF
 # Create GRN Detail API
 cat > "$PROJECT_ROOT/app/api/purchase-grns/[id]/route.ts" << 'APIEOF'
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { data: grn, error: grnError } = await supabase
       .from('purchase_grns')
@@ -1810,7 +1808,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }) {
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const body = await request.json();
     const { invoice_number, invoice_date, description } = body;
@@ -1856,7 +1854,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }) {
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     // Get GRN details
     const { data: grn } = await supabase
@@ -1936,16 +1934,15 @@ APIEOF
 # Create GRN Outstanding API
 cat > "$PROJECT_ROOT/app/api/purchase-grns/[id]/outstanding/route.ts" << 'APIEOF'
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { data: grn } = await supabase
       .from('purchase_grns')
@@ -1983,16 +1980,15 @@ APIEOF
 # Create Supplier Outstanding GRNs API
 cat > "$PROJECT_ROOT/app/api/suppliers/[id]/outstanding-grns/route.ts" << 'APIEOF'
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { data: grns } = await supabase
       .from('purchase_grns')

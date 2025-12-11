@@ -1,11 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import { SupplierSchema } from '@/lib/validation';
 import { successResponse, notFoundResponse, serverErrorResponse } from '@/lib/api-response';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // GET /api/suppliers/[id]
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }) {
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
 
@@ -28,8 +30,8 @@ export async function GET(
 
 // PUT /api/suppliers/[id]
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }) {
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -81,8 +83,8 @@ export async function PUT(
 
 // PATCH /api/suppliers/[id] - Soft delete
 export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }) {
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
 

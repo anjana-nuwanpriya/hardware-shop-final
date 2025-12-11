@@ -1,11 +1,14 @@
 import { supabase } from '@/lib/supabase';
+
 import { CustomerSchema } from '@/lib/validation';
 import { successResponse, notFoundResponse, serverErrorResponse } from '@/lib/api-response';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // GET /api/customers/[id]
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }) {
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
 
@@ -20,7 +23,7 @@ export async function GET(
       return notFoundResponse('Customer not found');
     }
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data });  
   } catch (error) {
     return serverErrorResponse(error);
   }
@@ -28,8 +31,8 @@ export async function GET(
 
 // PUT /api/customers/[id]
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }) {
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -83,8 +86,8 @@ export async function PUT(
 
 // PATCH /api/customers/[id] - Soft delete
 export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }) {
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
 

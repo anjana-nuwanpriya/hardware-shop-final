@@ -124,8 +124,7 @@ export default function CustomersPage() {
   const handleEdit = (customer: Customer) => {
     setEditingId(customer.id);
     setValue('name', customer.name);
-    setValue('type', customer.type);
-    setValue('contact_person', customer.contact_person || '');
+    setValue('type', customer.type as 'retail' | 'wholesale' | null | undefined);    setValue('contact_person', customer.contact_person || '');
     setValue('phone', customer.phone || '');
     setValue('email', customer.email || '');
     setValue('address', customer.address || '');

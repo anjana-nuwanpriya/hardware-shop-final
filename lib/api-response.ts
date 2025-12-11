@@ -23,12 +23,12 @@ interface ApiResponse<T = any> {
 export function successResponse<T>(
   data: T,
   message?: string
-): ApiResponse<T> {
-  return {
+): Response {  // Changed from ApiResponse<T>
+  return Response.json({
     success: true,
     data,
     message: message || 'Operation successful',
-  };
+  });
 }
 
 /**

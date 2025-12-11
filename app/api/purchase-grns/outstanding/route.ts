@@ -1,15 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'GRN ID is required' },
+        { status: 400 }
+      );
+    }
+
     // Get GRN total amount
     const { data: grn } = await supabase
       .from('purchase_grns')
       .select('total_amount')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!grn) {
@@ -23,7 +32,7 @@ export async function GET(
     const { data: allocations } = await supabase
       .from('supplier_payment_allocations')
       .select('allocation_amount')
-      .eq('purchase_grn_id', params.id);
+      .eq('purchase_grn_id', id);
 
     // Calculate paid amount
     const paid_amount = allocations?.reduce((sum, a) => sum + (a.allocation_amount || 0), 0) || 0;
@@ -33,7 +42,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
       data: {
-        grn_id: params.id,
+        grn_id: id,
         total_amount: grn.total_amount,
         paid_amount: parseFloat(paid_amount.toFixed(2)),
         outstanding: parseFloat(outstanding.toFixed(2)),

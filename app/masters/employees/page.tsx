@@ -23,7 +23,7 @@ interface Employee {
   created_at: string;
 }
 
-const ROLES = ['admin', 'manager', 'salesperson', 'cashier', 'accountant', 'warehouse'];
+const ROLES = ['admin', 'manager', 'cashier', 'staff'] as const;
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -146,7 +146,7 @@ export default function EmployeesPage() {
     setValue('phone', employee.phone || '');
     setValue('email', employee.email || '');
     setValue('address', employee.address || '');
-    setValue('role', employee.role);
+    setValue('role', employee.role as 'admin' | 'manager' | 'cashier' | 'staff' | null | undefined);
     setValue('store_id', employee.store_id || '');
     setIsModalOpen(true);
   };
@@ -331,6 +331,7 @@ export default function EmployeesPage() {
                   {...register('role')}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
+                  <option value="">Select a role</option>
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
                       {r.charAt(0).toUpperCase() + r.slice(1)}

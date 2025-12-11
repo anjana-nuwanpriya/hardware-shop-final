@@ -77,10 +77,21 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [paymentStatus, setPaymentStatus] = useState('');
+  const [saleId, setSaleId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSale();
-  }, [params.id]);
+    const initializeParams = async () => {
+      const { id } = await params;
+      setSaleId(id);
+    };
+    initializeParams();
+  }, [params]);
+
+  useEffect(() => {
+    if (saleId) {
+      fetchSale();
+    }
+  }, [saleId]);
 
   useEffect(() => {
     if (sale) {
@@ -89,9 +100,10 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
   }, [sale]);
 
   const fetchSale = async () => {
+    if (!saleId) return;
     try {
       setLoading(true);
-      const res = await fetch(`/api/sales-retail/${params.id}`);
+      const res = await fetch(`/api/sales-retail/${saleId}`);
       const data = await res.json();
 
       if (!data.success) {
@@ -109,13 +121,13 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   const handleUpdatePaymentStatus = async () => {
-    if (!sale || paymentStatus === sale.payment_status) return;
+    if (!sale || !saleId || paymentStatus === sale.payment_status) return;
 
     try {
       setUpdating(true);
       setError('');
 
-      const res = await fetch(`/api/sales-retail/${params.id}`, {
+      const res = await fetch(`/api/sales-retail/${saleId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,11 +155,13 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
       return;
     }
 
+    if (!saleId) return;
+
     try {
       setUpdating(true);
       setError('');
 
-      const res = await fetch(`/api/sales-retail/${params.id}`, {
+      const res = await fetch(`/api/sales-retail/${saleId}`, {
         method: 'DELETE',
       });
 

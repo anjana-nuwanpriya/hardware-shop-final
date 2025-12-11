@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -41,7 +41,7 @@ interface SalesRetail {
   is_active: boolean;
 }
 
-export default function SalesRetailPage() {
+function SalesRetailContent() {
   const searchParams = useSearchParams();
   const [sales, setSales] = useState<SalesRetail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -389,5 +389,13 @@ export default function SalesRetailPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SalesRetailPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center">Loading...</div>}>
+      <SalesRetailContent />
+    </Suspense>
   );
 }

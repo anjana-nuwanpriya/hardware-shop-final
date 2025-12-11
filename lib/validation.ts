@@ -16,6 +16,7 @@ export const CategorySchema = z.object({
 });
 
 export type Category = z.infer<typeof CategorySchema>;
+export type CategoryInput = z.infer<typeof CategorySchema>;
 
 // Store Schema
 export const StoreSchema = z.object({
@@ -28,6 +29,7 @@ export const StoreSchema = z.object({
 });
 
 export type Store = z.infer<typeof StoreSchema>;
+export type StoreInput = z.infer<typeof StoreSchema>;
 
 // Item Schema
 export const ItemSchema = z.object({
@@ -48,6 +50,7 @@ export const ItemSchema = z.object({
 });
 
 export type Item = z.infer<typeof ItemSchema>;
+export type ItemInput = z.infer<typeof ItemSchema>;
 
 // Supplier Schema
 export const SupplierSchema = z.object({
@@ -63,6 +66,7 @@ export const SupplierSchema = z.object({
 });
 
 export type Supplier = z.infer<typeof SupplierSchema>;
+export type SupplierInput = z.infer<typeof SupplierSchema>;
 
 // Customer Schema
 export const CustomerSchema = z.object({
@@ -80,6 +84,7 @@ export const CustomerSchema = z.object({
 });
 
 export type Customer = z.infer<typeof CustomerSchema>;
+export type CustomerInput = z.infer<typeof CustomerSchema>;
 
 // Employee Schema
 export const EmployeeSchema = z.object({
@@ -95,6 +100,7 @@ export const EmployeeSchema = z.object({
 });
 
 export type Employee = z.infer<typeof EmployeeSchema>;
+export type EmployeeInput = z.infer<typeof EmployeeSchema>;
 
 // Purchase Order Schema
 export const PurchaseOrderSchema = z.object({
@@ -107,6 +113,7 @@ export const PurchaseOrderSchema = z.object({
 });
 
 export type PurchaseOrder = z.infer<typeof PurchaseOrderSchema>;
+export type PurchaseOrderInput = z.infer<typeof PurchaseOrderSchema>;
 
 // Sales Retail Schema
 export const SalesRetailSchema = z.object({
@@ -119,6 +126,7 @@ export const SalesRetailSchema = z.object({
 });
 
 export type SalesRetail = z.infer<typeof SalesRetailSchema>;
+export type SalesRetailInput = z.infer<typeof SalesRetailSchema>;
 
 // Sales Wholesale Schema
 export const SalesWholesaleSchema = z.object({
@@ -131,6 +139,7 @@ export const SalesWholesaleSchema = z.object({
 });
 
 export type SalesWholesale = z.infer<typeof SalesWholesaleSchema>;
+export type SalesWholesaleInput = z.infer<typeof SalesWholesaleSchema>;
 
 // Stock Adjustment Schema
 export const StockAdjustmentSchema = z.object({
@@ -141,6 +150,7 @@ export const StockAdjustmentSchema = z.object({
 });
 
 export type StockAdjustment = z.infer<typeof StockAdjustmentSchema>;
+export type StockAdjustmentInput = z.infer<typeof StockAdjustmentSchema>;
 
 // Purchase GRN Schema
 export const PurchaseGRNSchema = z.object({
@@ -155,6 +165,7 @@ export const PurchaseGRNSchema = z.object({
 });
 
 export type PurchaseGRN = z.infer<typeof PurchaseGRNSchema>;
+export type PurchaseGRNInput = z.infer<typeof PurchaseGRNSchema>;
 
 // Sales Return Schema
 export const SalesReturnSchema = z.object({
@@ -167,6 +178,7 @@ export const SalesReturnSchema = z.object({
 });
 
 export type SalesReturn = z.infer<typeof SalesReturnSchema>;
+export type SalesReturnInput = z.infer<typeof SalesReturnSchema>;
 
 // Purchase Return Schema
 export const PurchaseReturnSchema = z.object({
@@ -178,6 +190,7 @@ export const PurchaseReturnSchema = z.object({
 });
 
 export type PurchaseReturn = z.infer<typeof PurchaseReturnSchema>;
+export type PurchaseReturnInput = z.infer<typeof PurchaseReturnSchema>;
 
 // Quotation Schema
 export const QuotationSchema = z.object({
@@ -191,6 +204,7 @@ export const QuotationSchema = z.object({
 });
 
 export type Quotation = z.infer<typeof QuotationSchema>;
+export type QuotationInput = z.infer<typeof QuotationSchema>;
 
 // Opening Stock Schema
 export const OpeningStockSchema = z.object({
@@ -201,6 +215,7 @@ export const OpeningStockSchema = z.object({
 });
 
 export type OpeningStock = z.infer<typeof OpeningStockSchema>;
+export type OpeningStockInput = z.infer<typeof OpeningStockSchema>;
 
 // Supplier Payment Schema
 export const SupplierPaymentSchema = z.object({
@@ -215,6 +230,7 @@ export const SupplierPaymentSchema = z.object({
 });
 
 export type SupplierPayment = z.infer<typeof SupplierPaymentSchema>;
+export type SupplierPaymentInput = z.infer<typeof SupplierPaymentSchema>;
 
 // Customer Payment Schema
 export const CustomerPaymentSchema = z.object({
@@ -229,6 +245,7 @@ export const CustomerPaymentSchema = z.object({
 });
 
 export type CustomerPayment = z.infer<typeof CustomerPaymentSchema>;
+export type CustomerPaymentInput = z.infer<typeof CustomerPaymentSchema>;
 
 // Audit Log Schema
 export const AuditLogSchema = z.object({
@@ -243,6 +260,7 @@ export const AuditLogSchema = z.object({
 });
 
 export type AuditLog = z.infer<typeof AuditLogSchema>;
+export type AuditLogInput = z.infer<typeof AuditLogSchema>;
 
 // Wholesale Return Schema
 export const SalesWholesaleReturnSchema = z.object({
@@ -255,3 +273,4 @@ export const SalesWholesaleReturnSchema = z.object({
 });
 
 export type SalesWholesaleReturn = z.infer<typeof SalesWholesaleReturnSchema>;
+export type SalesWholesaleReturnInput = z.infer<typeof SalesWholesaleReturnSchema>;

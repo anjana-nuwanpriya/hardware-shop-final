@@ -1,10 +1,12 @@
 import { supabase } from '@/lib/supabase';
 import { notFoundResponse, serverErrorResponse, successResponse } from '@/lib/api-response';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // GET /api/stock-adjustments/[id]
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }) {
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
 

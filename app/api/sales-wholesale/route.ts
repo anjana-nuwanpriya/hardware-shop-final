@@ -1,183 +1,234 @@
+// app/api/sales-wholesale/route.ts (LIST and CREATE)
 import { supabase } from '@/lib/supabase';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+import { v4 as uuidv4 } from 'uuid';
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest) {
   try {
-    const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const storeId = searchParams.get('store_id');
+    const customerId = searchParams.get('customer_id');
+    const dateFrom = searchParams.get('date_from');
+    const dateTo = searchParams.get('date_to');
 
-    const { data, error } = await supabase
-      .from('sales_wholesale_returns')
+    let query = supabase
+      .from('sales_wholesale')
       .select(
         `
         id,
-        return_number,
-        return_date,
+        invoice_number,
+        invoice_date,
+        sale_date,
         customer_id,
         store_id,
-        sales_wholesale_id,
-        return_reason,
-        refund_method,
-        total_refund_amount,
-        description,
         employee_id,
+        payment_method,
+        payment_status,
+        subtotal,
+        discount,
+        tax,
+        total_amount,
+        description,
         is_active,
         created_at,
-        updated_at,
         customers(id, name, phone, email),
         stores(id, code, name),
-        employees(id, name),
-        sales_wholesale_return_items(
-          id,
-          item_id,
-          batch_no,
-          original_qty,
-          return_qty,
-          unit_price,
-          discount_percent,
-          discount_value,
-          refund_value,
-          items(id, code, name)
-        )
+        employees(id, name)
       `
       )
-      .eq('id', id)
-      .single();
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (storeId) {
+      query = query.eq('store_id', storeId);
+    }
+
+    if (customerId) {
+      query = query.eq('customer_id', customerId);
+    }
+
+    if (dateFrom) {
+      query = query.gte('sale_date', dateFrom);
+    }
+
+    if (dateTo) {
+      query = query.lte('sale_date', dateTo);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    if (!data) {
-      return NextResponse.json({ error: 'Return not found' }, { status: 404 });
-    }
-
-    return NextResponse.json({ data });
+    return NextResponse.json({ data: data || [] });
   } catch (err) {
     console.error('Error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(request: NextRequest) {
   try {
-    const { id } = await params;
     const body = await request.json();
+    const {
+      customer_id,
+      store_id,
+      employee_id,
+      payment_method,
+      description,
+      items,
+    } = body;
 
-    const { refund_method, description } = body;
-
-    const updateData: any = {};
-    if (refund_method !== undefined) updateData.refund_method = refund_method;
-    if (description !== undefined) updateData.description = description;
-
-    const { data, error } = await supabase
-      .from('sales_wholesale_returns')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    // Validate required fields
+    if (!customer_id) {
+      return NextResponse.json({ error: 'customer_id is required' }, { status: 400 });
     }
 
-    // Create audit log
-    await supabase.from('audit_logs').insert({
-      action: 'UPDATE',
-      table_name: 'sales_wholesale_returns',
-      record_id: id,
-      new_values: updateData,
+    if (!store_id) {
+      return NextResponse.json({ error: 'store_id is required' }, { status: 400 });
+    }
+
+    if (!items || items.length === 0) {
+      return NextResponse.json({ error: 'At least one item is required' }, { status: 400 });
+    }
+
+    // Get next invoice number
+    const { data: lastSale } = await supabase
+      .from('sales_wholesale')
+      .select('invoice_number')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    let nextNumber = 1;
+    if (lastSale && lastSale.length > 0) {
+      const lastNum = parseInt(lastSale[0].invoice_number.split('-').pop() || '0');
+      nextNumber = lastNum + 1;
+    }
+
+    const invoiceNumber = `WINV-${String(nextNumber).padStart(6, '0')}`;
+
+    // Calculate totals
+    let subtotal = 0;
+    let totalTax = 0;
+    for (const item of items) {
+      if (!item.item_id || item.quantity <= 0 || item.unit_price <= 0) {
+        return NextResponse.json({ error: 'Invalid item data' }, { status: 400 });
+      }
+      const itemSubtotal = item.unit_price * item.quantity - (item.discount_value || 0);
+      subtotal += itemSubtotal;
+      totalTax += item.tax_value || 0;
+    }
+
+    const totalAmount = subtotal + totalTax;
+    const saleId = uuidv4();
+
+    // Create sales_wholesale record
+    const { error: saleError } = await supabase.from('sales_wholesale').insert({
+      id: saleId,
+      invoice_number: invoiceNumber,
+      customer_id,
+      store_id,
+      employee_id: employee_id || null,
+      payment_method: payment_method || 'cash',
+      payment_status: 'pending',
+      subtotal,
+      discount: 0,
+      tax: totalTax,
+      total_amount: totalAmount,
+      description: description || null,
+      is_active: true,
     });
 
-    return NextResponse.json({ data });
-  } catch (err) {
-    console.error('Error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-
-    // Get the return first
-    const { data: returnData, error: getError } = await supabase
-      .from('sales_wholesale_returns')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (getError || !returnData) {
-      return NextResponse.json({ error: 'Return not found' }, { status: 404 });
+    if (saleError) {
+      console.error('Sale creation error:', saleError);
+      return NextResponse.json({ error: saleError.message }, { status: 500 });
     }
 
-    // Get all items in the return
-    const { data: items, error: itemsError } = await supabase
-      .from('sales_wholesale_return_items')
-      .select('*')
-      .eq('sales_wholesale_return_id', id);
+    // Create line items
+    const lineItemsToInsert = items.map((item: any) => ({
+      sales_wholesale_id: saleId,
+      item_id: item.item_id,
+      batch_no: item.batch_no || null,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      discount_percent: item.discount_percent || 0,
+      discount_value: item.discount_value || 0,
+      tax_value: item.tax_value || 0,
+      net_value: item.unit_price * item.quantity - (item.discount_value || 0) + (item.tax_value || 0),
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('sales_wholesale_items')
+      .insert(lineItemsToInsert);
 
     if (itemsError) {
-      console.error('Items fetch error:', itemsError);
+      console.error('Line items error:', itemsError);
       return NextResponse.json({ error: itemsError.message }, { status: 500 });
     }
 
-    // Revert stock for each item (remove from stock again)
-    if (items && items.length > 0) {
-      for (const item of items) {
-        // Get current stock
-        const { data: stockData } = await supabase
-          .from('item_store_stock')
-          .select('quantity_on_hand')
-          .eq('item_id', item.item_id)
-          .eq('store_id', returnData.store_id)
-          .single();
+    // Deduct stock and create inventory transactions
+    for (const item of items) {
+      const { data: stockData } = await supabase
+        .from('item_store_stock')
+        .select('quantity_on_hand')
+        .eq('item_id', item.item_id)
+        .eq('store_id', store_id)
+        .single();
 
-        const currentStock = stockData?.quantity_on_hand || 0;
-        const newStock = currentStock - item.return_qty;
+      const currentStock = stockData?.quantity_on_hand || 0;
+      const newStock = currentStock - item.quantity;
 
-        // Update stock back (remove the return)
-        await supabase
-          .from('item_store_stock')
-          .update({ quantity_on_hand: newStock })
-          .eq('item_id', item.item_id)
-          .eq('store_id', returnData.store_id);
+      await supabase
+        .from('item_store_stock')
+        .update({ quantity_on_hand: newStock })
+        .eq('item_id', item.item_id)
+        .eq('store_id', store_id);
 
-        // Create reversal inventory transaction
-        await supabase.from('inventory_transactions').insert({
+      const { error: txError } = await supabase
+        .from('inventory_transactions')
+        .insert({
           item_id: item.item_id,
-          store_id: returnData.store_id,
+          store_id,
           transaction_type: 'sale',
-          quantity: -item.return_qty,
+          quantity: -item.quantity,
           batch_no: item.batch_no || null,
-          reference_id: id,
-          reference_type: 'sales_wholesale_returns',
-          notes: `Reversal of return ${returnData.return_number}`,
+          reference_id: saleId,
+          reference_type: 'sales_wholesale',
+          notes: `Wholesale sale ${invoiceNumber}`,
+          created_by: employee_id || null,
         });
+
+      if (txError) {
+        console.error('Transaction creation error:', txError);
       }
-    }
-
-    // Soft delete the return
-    const { error: deleteError } = await supabase
-      .from('sales_wholesale_returns')
-      .update({ is_active: false })
-      .eq('id', id);
-
-    if (deleteError) {
-      console.error('Delete error:', deleteError);
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
 
     // Create audit log
     await supabase.from('audit_logs').insert({
-      action: 'DELETE',
-      table_name: 'sales_wholesale_returns',
-      record_id: id,
-      old_values: returnData,
+      user_id: employee_id || null,
+      action: 'CREATE',
+      table_name: 'sales_wholesale',
+      record_id: saleId,
+      new_values: {
+        invoice_number: invoiceNumber,
+        total_amount: totalAmount,
+        items_count: items.length,
+      },
     });
 
-    return NextResponse.json({ message: 'Return deleted and stock reverted' });
+    return NextResponse.json(
+      {
+        data: {
+          id: saleId,
+          invoice_number: invoiceNumber,
+          total_amount: totalAmount,
+        },
+      },
+      { status: 201 }
+    );
   } catch (err) {
     console.error('Error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

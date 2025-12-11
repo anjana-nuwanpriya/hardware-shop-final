@@ -4,7 +4,8 @@
  * FIXED: Next.js 15+ params + TypeScript errors
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }) {
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
 
@@ -181,7 +182,7 @@ export async function GET(
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }) {
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
@@ -256,7 +257,7 @@ export async function POST(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }) {
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const { searchParams } = new URL(req.url);

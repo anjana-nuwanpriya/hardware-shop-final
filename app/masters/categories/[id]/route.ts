@@ -1,10 +1,12 @@
 import { supabase } from '@/lib/supabase';
 import { CategorySchema } from '@/lib/validation';
 import { successResponse, notFoundResponse, validationErrorResponse, serverErrorResponse } from '@/lib/api-response';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }) {
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const { data, error } = await supabase
@@ -25,8 +27,8 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }) {
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -97,8 +99,8 @@ export async function PUT(
 }
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }) {
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -82,7 +83,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Create audit log
     await supabase.from('audit_logs').insert({
       action: 'UPDATE',
       table_name: 'sales_returns',
@@ -101,7 +101,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     const { id } = await params;
 
-    // Get the return first
     const { data: returnData, error: getError } = await supabase
       .from('sales_returns')
       .select('*')
@@ -112,7 +111,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'Return not found' }, { status: 404 });
     }
 
-    // Get all items in the return
     const { data: items, error: itemsError } = await supabase
       .from('sales_return_items')
       .select('*')
@@ -123,10 +121,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: itemsError.message }, { status: 500 });
     }
 
-    // Revert stock for each item (remove from stock again)
     if (items && items.length > 0) {
       for (const item of items) {
-        // Get current stock
         const { data: stockData } = await supabase
           .from('item_store_stock')
           .select('quantity_on_hand')
@@ -137,14 +133,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         const currentStock = stockData?.quantity_on_hand || 0;
         const newStock = currentStock - item.return_qty;
 
-        // Update stock back (remove the return)
         await supabase
           .from('item_store_stock')
           .update({ quantity_on_hand: newStock })
           .eq('item_id', item.item_id)
           .eq('store_id', returnData.store_id);
 
-        // Create reversal inventory transaction
         await supabase.from('inventory_transactions').insert({
           item_id: item.item_id,
           store_id: returnData.store_id,
@@ -158,7 +152,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       }
     }
 
-    // Soft delete the return
     const { error: deleteError } = await supabase
       .from('sales_returns')
       .update({ is_active: false })
@@ -169,7 +162,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
 
-    // Create audit log
     await supabase.from('audit_logs').insert({
       action: 'DELETE',
       table_name: 'sales_returns',

@@ -3,7 +3,8 @@
  * Fixed to use your existing Supabase integration
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,7 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }) {
+  { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await request.json();

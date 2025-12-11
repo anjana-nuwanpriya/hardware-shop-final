@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }) {
+  { params }: { params: Promise<{ id: string }> }) {
   try {
-    const itemId = params.id;
+   const itemId = (await params).id;
     const { searchParams } = new URL(req.url);
     const days = parseInt(searchParams.get('days') || '30');
 

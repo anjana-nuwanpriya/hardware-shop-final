@@ -158,7 +158,7 @@ export default function ItemsPage() {
     setValue('hsn_code', item.hsn_code || '');
     setValue('unit_of_measure', item.unit_of_measure);
     setValue('reorder_level', item.reorder_level);
-    setValue('tax_method', item.tax_method);
+    setValue('tax_method', item.tax_method as 'inclusive' | 'exclusive' | 'none' | null | undefined);
     setValue('tax_rate', item.tax_rate);
     setIsModalOpen(true);
   };
