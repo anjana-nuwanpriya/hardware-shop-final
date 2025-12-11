@@ -128,6 +128,7 @@ export default function Sidebar() {
               {menuItem('Opening Stock', '/stock/opening-stock')}
               {menuItem('Current Stock', '/stock/current-stock')}
               {menuItem('Adjustments', '/stock/adjustments')}
+              {menuItem('Dispatch', '/stock/dispatch')}
             </div>
           )}
         </div>
