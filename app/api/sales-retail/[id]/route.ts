@@ -16,49 +16,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
 
+    // Fetch sale data
     const { data: sale, error } = await supabase
       .from('sales_retail')
-      .select(
-        `
-        id,
-        invoice_number,
-        invoice_date,
-        sale_date,
-        customer_id,
-        customers(id, name, type, phone, email),
-        store_id,
-        stores(id, code, name, address),
-        employee_id,
-        employees(id, name, email),
-        payment_method,
-        payment_status,
-        subtotal,
-        discount,
-        tax,
-        total_amount,
-        description,
-        is_active,
-        created_at,
-        updated_at,
-        sales_retail_items(
-          id,
-          item_id,
-          items(id, code, name, unit_of_measure),
-          batch_no,
-          quantity,
-          unit_price,
-          discount_percent,
-          discount_value,
-          tax_value,
-          net_value
-        )
-      `
-      )
+      .select('*')
       .eq('id', id)
       .eq('is_active', true)
       .single();
 
-    if (error) {
+    if (error || !sale) {
       console.error('Error fetching sale:', error);
       return NextResponse.json(
         { success: false, error: 'Sale not found' },
@@ -66,9 +32,88 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    // Fetch store
+    let store = null;
+    if (sale.store_id) {
+      const { data: storeData } = await supabase
+        .from('stores')
+        .select('id, code, name, address')
+        .eq('id', sale.store_id)
+        .single();
+      store = storeData;
+    }
+
+    // Fetch customer
+    let customer = null;
+    if (sale.customer_id) {
+      const { data: customerData } = await supabase
+        .from('customers')
+        .select('id, name, type, phone, email')
+        .eq('id', sale.customer_id)
+        .single();
+      customer = customerData;
+    }
+
+    // Fetch employee
+    let employee = null;
+    if (sale.employee_id) {
+      const { data: employeeData } = await supabase
+        .from('employees')
+        .select('id, name, email')
+        .eq('id', sale.employee_id)
+        .single();
+      employee = employeeData;
+    }
+
+    // Fetch items with item details
+    const { data: items } = await supabase
+      .from('sales_retail_items')
+      .select('*')
+      .eq('sales_retail_id', id);
+
+    let itemsWithDetails: any[] = [];
+    if (items && items.length > 0) {
+      for (const item of items) {
+        const { data: itemData } = await supabase
+          .from('items')
+          .select('id, code, name, unit_of_measure')
+          .eq('id', item.item_id)
+          .single();
+
+        itemsWithDetails.push({
+          ...item,
+          items: itemData,
+        });
+      }
+    }
+
+    const formatted = {
+      id: sale.id,
+      invoice_number: sale.invoice_number,
+      invoice_date: sale.invoice_date,
+      sale_date: sale.sale_date,
+      customer_id: sale.customer_id,
+      store_id: sale.store_id,
+      employee_id: sale.employee_id,
+      payment_method: sale.payment_method,
+      payment_status: sale.payment_status,
+      subtotal: sale.subtotal,
+      discount: sale.discount,
+      tax: sale.tax,
+      total_amount: sale.total_amount,
+      description: sale.description,
+      is_active: sale.is_active,
+      created_at: sale.created_at,
+      updated_at: sale.updated_at,
+      stores: store,
+      customers: customer,
+      employees: employee,
+      sales_retail_items: itemsWithDetails,
+    };
+
     return NextResponse.json({
       success: true,
-      data: sale,
+      data: formatted,
     });
   } catch (error) {
     console.error('API Error:', error);
@@ -85,7 +130,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }) {
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -102,6 +148,14 @@ export async function PATCH(
       return NextResponse.json(
         { success: false, error: 'Sale not found' },
         { status: 404 }
+      );
+    }
+
+    // Validate payment status
+    if (body.payment_status && !['unpaid', 'partially_paid', 'paid'].includes(body.payment_status)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid payment status' },
+        { status: 400 }
       );
     }
 
@@ -145,22 +199,15 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }) {
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params;
 
     // Get sale with items for stock reversal
     const { data: sale, error: saleError } = await supabase
       .from('sales_retail')
-      .select(
-        `
-        *,
-        sales_retail_items(
-          *,
-          items(*)
-        )
-      `
-      )
+      .select('*')
       .eq('id', id)
       .eq('is_active', true)
       .single();
@@ -172,6 +219,12 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    // Fetch items
+    const { data: items } = await supabase
+      .from('sales_retail_items')
+      .select('*')
+      .eq('sales_retail_id', id);
 
     // Soft delete the sale
     const { error: deleteError } = await supabase
@@ -191,8 +244,8 @@ export async function DELETE(
     }
 
     // ✅ Revert stock: Add back quantities
-    if (sale.sales_retail_items && sale.sales_retail_items.length > 0) {
-      for (const item of sale.sales_retail_items) {
+    if (items && items.length > 0) {
+      for (const item of items) {
         const { data: stockRecord } = await supabase
           .from('item_store_stock')
           .select('*')
@@ -237,7 +290,7 @@ export async function DELETE(
       data: {
         id: sale.id,
         invoice_number: sale.invoice_number,
-        itemsReverted: sale.sales_retail_items?.length || 0,
+        itemsReverted: items?.length || 0,
       },
     });
   } catch (error) {

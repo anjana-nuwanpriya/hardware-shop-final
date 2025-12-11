@@ -60,53 +60,43 @@ export default function CurrentStockPage() {
   const [sortBy, setSortBy] = useState<keyof StockItem>('item_code');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Fetch stores on mount
   useEffect(() => {
     const fetchStores = async () => {
       try {
         setStoresLoading(true);
         const response = await fetch('/api/stores?limit=100');
         const data = await response.json();
-
         if (!data.success || !data.stores) {
           setError('Failed to fetch stores');
           setStores([]);
           setStoresLoading(false);
           return;
         }
-
-        // API already returns only active stores
         const activeStores = data.stores;
-
         if (activeStores.length === 0) {
           setError('No stores available');
           setStores([]);
           setStoresLoading(false);
           return;
         }
-
         setStores(activeStores);
         setSelectedStore(activeStores[0].id);
         setError('');
       } catch (err) {
-        console.error('Error fetching stores:', err);
         setError('Failed to fetch stores');
         setStores([]);
       } finally {
         setStoresLoading(false);
       }
     };
-
     fetchStores();
   }, []);
 
-  // Fetch stock data when store or filters change
   useEffect(() => {
     if (!selectedStore) {
       setLoading(false);
       return;
     }
-
     const fetchStock = async () => {
       try {
         setLoading(true);
@@ -114,31 +104,26 @@ export default function CurrentStockPage() {
         params.append('store_id', selectedStore);
         if (searchTerm) params.append('search', searchTerm);
         if (statusFilter !== 'all') params.append('status', statusFilter);
-
         const response = await fetch(`/api/stock/by-store?${params}`);
         const data = await response.json();
-
         if (!data.success) {
           setError(data.error || 'Failed to fetch stock');
           setItems([]);
           setSummary(null);
           return;
         }
-
         setItems(data.data || []);
         setSummary(data.summary);
         setError('');
         setExpandedRow(null);
       } catch (err) {
         setError('Error fetching stock data');
-        console.error(err);
         setItems([]);
         setSummary(null);
       } finally {
         setLoading(false);
       }
     };
-
     const timer = setTimeout(fetchStock, 300);
     return () => clearTimeout(timer);
   }, [selectedStore, searchTerm, statusFilter]);
@@ -146,46 +131,42 @@ export default function CurrentStockPage() {
   const sortedItems = [...items].sort((a, b) => {
     const aVal = a[sortBy];
     const bVal = b[sortBy];
-
     if (typeof aVal === 'string') {
-      return sortOrder === 'asc'
-        ? aVal.localeCompare(bVal as string)
-        : (bVal as string).localeCompare(aVal);
+      return sortOrder === 'asc' ? aVal.localeCompare(bVal as string) : (bVal as string).localeCompare(aVal);
     }
-
     const numA = Number(aVal) || 0;
     const numB = Number(bVal) || 0;
     return sortOrder === 'asc' ? numA - numB : numB - numA;
   });
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'OK':
-        return 'bg-green-50 text-green-700 border-green-200';
-      case 'LOW':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      case 'CRITICAL':
-        return 'bg-red-50 text-red-700 border-red-200';
-      case 'OUT_OF_STOCK':
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
+    const colors: Record<string, string> = {
+      OK: 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100',
+      LOW: 'bg-amber-50 border-amber-200 hover:bg-amber-100',
+      CRITICAL: 'bg-rose-50 border-rose-200 hover:bg-rose-100',
+      OUT_OF_STOCK: 'bg-slate-50 border-slate-200 hover:bg-slate-100',
+    };
+    return colors[status] || 'bg-slate-50';
   };
 
   const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'OK':
-        return 'bg-green-100 text-green-800';
-      case 'LOW':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'CRITICAL':
-        return 'bg-red-100 text-red-800';
-      case 'OUT_OF_STOCK':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    const colors: Record<string, string> = {
+      OK: 'bg-emerald-100 text-emerald-800',
+      LOW: 'bg-amber-100 text-amber-800',
+      CRITICAL: 'bg-rose-100 text-rose-800',
+      OUT_OF_STOCK: 'bg-slate-100 text-slate-800',
+    };
+    return colors[status] || 'bg-slate-100';
+  };
+
+  const getStatusIcon = (status: string) => {
+    const icons: Record<string, string> = {
+      OK: '✓',
+      LOW: '⚠',
+      CRITICAL: '⚡',
+      OUT_OF_STOCK: '✕',
+    };
+    return icons[status] || '•';
   };
 
   const handleSort = (column: keyof StockItem) => {
@@ -200,43 +181,36 @@ export default function CurrentStockPage() {
   const selectedStoreName = stores.find((s) => s.id === selectedStore)?.name || 'Select Store';
 
   if (storesLoading) {
-    return (
-      <div className="p-8 text-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p className="mt-4 text-gray-600">Loading stores...</p>
-      </div>
-    );
+    return <div className="p-6 text-center text-xs text-gray-500">Loading stores...</div>;
   }
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">Current Stock</h1>
-        <p className="text-gray-600">Real-time inventory levels and valuation by store</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">📦 Stock Management</h1>
+        <p className="text-sm text-gray-600">Real-time inventory levels & valuations</p>
       </div>
 
       {/* Store Selection */}
-      <div className="mb-8 bg-white p-6 rounded-lg shadow">
-        <label className="block text-sm font-semibold text-gray-900 mb-3">
-          📍 Select Store
-        </label>
+      <div className="mb-5 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <label className="block text-sm font-semibold text-gray-800 mb-3">Select Store</label>
         {stores.length === 0 ? (
-          <p className="text-red-600">No stores available</p>
+          <p className="text-rose-600 text-sm">No stores available</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
             {stores.map((store) => (
               <button
                 key={store.id}
                 onClick={() => setSelectedStore(store.id)}
-                className={`p-4 rounded-lg border-2 transition-all text-left ${
+                className={`p-3 rounded-lg border-2 text-left transition-all duration-200 ${
                   selectedStore === store.id
-                    ? 'border-blue-600 bg-blue-50'
-                    : 'border-gray-200 bg-white hover:border-blue-300'
+                    ? 'border-blue-500 bg-blue-50 shadow-md'
+                    : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm'
                 }`}
               >
-                <div className="font-semibold text-gray-900">{store.name}</div>
-                <div className="text-sm text-gray-600">{store.code}</div>
+                <div className="font-semibold text-xs text-gray-900">{store.name}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{store.code}</div>
               </button>
             ))}
           </div>
@@ -245,107 +219,95 @@ export default function CurrentStockPage() {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm font-medium mb-1">Total Items</p>
-            <p className="text-3xl font-bold text-gray-900">{summary.total_items}</p>
-            <p className="text-green-600 text-xs mt-1">✓ {summary.by_status.ok_count} OK</p>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow p-4 text-white">
+            <p className="text-xs opacity-90 mb-1">Total Items</p>
+            <p className="text-2xl font-bold">{summary.total_items}</p>
+            <p className="text-xs mt-2 opacity-75">✓ {summary.by_status.ok_count} OK</p>
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm font-medium mb-1">Total Qty</p>
-            <p className="text-3xl font-bold text-gray-900">
-              {summary.total_quantity_on_hand.toLocaleString()}
-            </p>
-            <p className="text-blue-600 text-xs mt-1">↓ {summary.total_reserved_quantity} reserved</p>
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow p-4 text-white">
+            <p className="text-xs opacity-90 mb-1">Total Qty</p>
+            <p className="text-2xl font-bold">{summary.total_quantity_on_hand.toLocaleString()}</p>
+            <p className="text-xs mt-2 opacity-75">↓ {summary.total_reserved_quantity} reserved</p>
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm font-medium mb-1">Cost Value</p>
-            <p className="text-3xl font-bold text-gray-900">
-              LKR {(summary.total_cost_valuation / 1000).toFixed(1)}K
-            </p>
-            <p className="text-gray-500 text-xs mt-1">@ cost price</p>
+          <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow p-4 text-white">
+            <p className="text-xs opacity-90 mb-1">Cost Value</p>
+            <p className="text-2xl font-bold">LKR {(summary.total_cost_valuation / 1000000).toFixed(1)}M</p>
+            <p className="text-xs mt-2 opacity-75">@ cost</p>
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm font-medium mb-1">Retail Value</p>
-            <p className="text-3xl font-bold text-gray-900">
-              LKR {(summary.total_retail_valuation / 1000).toFixed(1)}K
-            </p>
-            <p className="text-gray-500 text-xs mt-1">@ retail price</p>
+          <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg shadow p-4 text-white">
+            <p className="text-xs opacity-90 mb-1">Retail Value</p>
+            <p className="text-2xl font-bold">LKR {(summary.total_retail_valuation / 1000000).toFixed(1)}M</p>
+            <p className="text-xs mt-2 opacity-75">@ retail</p>
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm font-medium mb-1">Total Profit</p>
-            <p className="text-3xl font-bold text-green-600">
-              LKR {(summary.total_profit_margin / 1000).toFixed(1)}K
-            </p>
-            <p className="text-gray-500 text-xs mt-1">available profit</p>
+          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg shadow p-4 text-white">
+            <p className="text-xs opacity-90 mb-1">Profit Potential</p>
+            <p className="text-2xl font-bold">LKR {(summary.total_profit_margin / 1000000).toFixed(1)}M</p>
+            <p className="text-xs mt-2 opacity-75">margin</p>
           </div>
         </div>
       )}
 
-      {/* Status Filter & Search */}
-      <div className="mb-6 space-y-4">
-        {/* Filter Chips */}
-        <div className="flex gap-2 flex-wrap">
+      {/* Filters */}
+      <div className="mb-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex gap-2 flex-wrap mb-3">
           {['all', 'OK', 'LOW', 'CRITICAL', 'OUT_OF_STOCK'].map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 rounded-full font-medium text-sm transition-all ${
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
                 statusFilter === status
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:border-blue-300'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {status === 'all' ? 'All Items' : status}
+              {status === 'all' ? '📋 All Items' : `${getStatusIcon(status)} ${status}`}
               {summary && status !== 'all' && (
-                <span className="ml-2 text-xs opacity-75">
+                <span className="ml-1 text-xs opacity-75">
                   ({summary.by_status[`${status.toLowerCase()}_count` as keyof typeof summary.by_status]})
                 </span>
               )}
             </button>
           ))}
         </div>
-
-        {/* Search Bar */}
         <div className="relative">
-          <span className="absolute left-4 top-3.5 text-gray-400">🔍</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
           <input
             type="text"
             placeholder="Search by code, name, or category..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
       </div>
 
-      {/* Error Message */}
+      {/* Error */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
-          <span className="text-xl">⚠️</span>
+        <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs flex items-center gap-2">
+          <span>⚠️</span>
           {error}
         </div>
       )}
 
-      {/* Loading State */}
+      {/* Loading */}
       {loading && (
-        <div className="flex justify-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="flex justify-center py-8">
+          <div className="inline-flex items-center gap-2 text-xs text-gray-600">
+            <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+            Loading stock data...
+          </div>
         </div>
       )}
 
       {/* Table */}
       {!loading && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs">
               <thead>
-                <tr className="bg-gray-100 border-b border-gray-200">
-                  <th className="px-6 py-4 text-left text-gray-700 font-semibold w-12"></th>
+                <tr className="bg-gradient-to-r from-gray-100 to-gray-50 border-b border-gray-200">
+                  <th className="px-3 py-3 text-left w-6"></th>
                   {[
                     { key: 'item_code', label: 'Code' },
                     { key: 'item_name', label: 'Name' },
@@ -353,30 +315,32 @@ export default function CurrentStockPage() {
                     { key: 'quantity_on_hand', label: 'Qty' },
                     { key: 'reorder_level', label: 'Reorder' },
                     { key: 'status', label: 'Status' },
-                    { key: 'cost_valuation', label: 'Cost Value' },
-                    { key: 'retail_valuation', label: 'Retail Value' },
+                    { key: 'cost_valuation', label: 'Cost Val' },
+                    { key: 'retail_valuation', label: 'Retail Val' },
                     { key: 'profit_margin_total', label: 'Profit' },
-                    { key: 'last_restock_date', label: 'Last Restock' },
+                    { key: 'last_restock_date', label: 'Restock' },
                   ].map((col) => (
                     <th
                       key={col.key}
                       onClick={() => handleSort(col.key as keyof StockItem)}
-                      className="px-6 py-4 text-left text-gray-700 font-semibold cursor-pointer hover:bg-gray-50"
+                      className="px-3 py-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 transition"
                     >
                       <div className="flex items-center gap-2">
                         {col.label}
-                        <span className="text-xs text-gray-400">
-                          {sortBy === col.key && (sortOrder === 'asc' ? '↑' : '↓')}
-                        </span>
+                        {sortBy === col.key && (
+                          <span className="text-blue-600">
+                            {sortOrder === 'asc' ? '↑' : '↓'}
+                          </span>
+                        )}
                       </div>
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-200">
                 {sortedItems.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={11} className="px-3 py-6 text-center text-gray-500">
                       No items found in {selectedStoreName}
                     </td>
                   </tr>
@@ -384,44 +348,36 @@ export default function CurrentStockPage() {
                   sortedItems.map((item) => (
                     <tr
                       key={item.id}
-                      className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${getStatusColor(
-                        item.status
-                      )}`}
+                      className={`border-l-4 border-l-transparent transition hover:shadow-sm ${getStatusColor(item.status)} ${
+                        item.status === 'OK' ? 'border-l-emerald-500' :
+                        item.status === 'LOW' ? 'border-l-amber-500' :
+                        item.status === 'CRITICAL' ? 'border-l-rose-500' : 'border-l-slate-500'
+                      }`}
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-2">
                         <button
                           onClick={() => setExpandedRow(expandedRow === item.id ? null : item.id)}
-                          className="text-gray-400 hover:text-gray-600 text-xl"
+                          className="text-gray-400 hover:text-gray-600 transition text-lg"
                         >
                           {expandedRow === item.id ? '▼' : '▶'}
                         </button>
                       </td>
-                      <td className="px-6 py-4 font-mono font-semibold text-gray-900">{item.item_code}</td>
-                      <td className="px-6 py-4 font-medium text-gray-900">{item.item_name}</td>
-                      <td className="px-6 py-4 text-gray-700">{item.category_name}</td>
-                      <td className="px-6 py-4 font-semibold text-gray-900">{item.quantity_on_hand}</td>
-                      <td className="px-6 py-4 text-gray-700">{item.reorder_level}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeColor(
-                            item.status
-                          )}`}
-                        >
-                          {item.status}
+                      <td className="px-3 py-2 font-mono font-bold text-gray-900">{item.item_code}</td>
+                      <td className="px-3 py-2 font-semibold text-gray-900">{item.item_name}</td>
+                      <td className="px-3 py-2 text-gray-700">{item.category_name}</td>
+                      <td className="px-3 py-2 font-bold text-gray-900">{item.quantity_on_hand}</td>
+                      <td className="px-3 py-2 text-gray-700">{item.reorder_level}</td>
+                      <td className="px-3 py-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${getStatusBadgeColor(item.status)}`}>
+                          {getStatusIcon(item.status)} {item.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-900">LKR {item.cost_valuation.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-gray-900">LKR {item.retail_valuation.toLocaleString()}</td>
-                      <td className="px-6 py-4 font-medium text-green-600">
-                        LKR {item.profit_margin_total.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-gray-700">
+                      <td className="px-3 py-2 text-gray-900">LKR {(item.cost_valuation / 100000).toFixed(0)}L</td>
+                      <td className="px-3 py-2 font-semibold text-gray-900">LKR {(item.retail_valuation / 100000).toFixed(0)}L</td>
+                      <td className="px-3 py-2 font-bold text-emerald-600">LKR {(item.profit_margin_total / 100000).toFixed(0)}L</td>
+                      <td className="px-3 py-2 text-gray-600">
                         {item.last_restock_date
-                          ? new Date(item.last_restock_date).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })
+                          ? new Date(item.last_restock_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                           : '-'}
                       </td>
                     </tr>
@@ -433,24 +389,20 @@ export default function CurrentStockPage() {
         </div>
       )}
 
-      {/* Expanded Details */}
-      {expandedRow && !loading && (
-        <div className="mt-6 bg-white p-8 rounded-lg shadow">
-          {sortedItems.find((item) => item.id === expandedRow) && (
-            <ItemDetailsView
-              item={sortedItems.find((item) => item.id === expandedRow)!}
-              storeName={selectedStoreName}
-              onClose={() => setExpandedRow(null)}
-            />
-          )}
+      {/* Details */}
+      {expandedRow && !loading && sortedItems.find((item) => item.id === expandedRow) && (
+        <div className="mt-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <ItemDetailsView
+            item={sortedItems.find((item) => item.id === expandedRow)!}
+            storeName={selectedStoreName}
+            onClose={() => setExpandedRow(null)}
+          />
         </div>
       )}
 
       {/* Footer */}
-      <div className="mt-8 text-center text-sm text-gray-500">
-        <p>
-          Showing {sortedItems.length} items in <strong>{selectedStoreName}</strong>
-        </p>
+      <div className="mt-4 text-center text-xs text-gray-500">
+        Showing <strong>{sortedItems.length}</strong> items in <strong>{selectedStoreName}</strong>
       </div>
     </div>
   );
@@ -467,104 +419,86 @@ function ItemDetailsView({
 }) {
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-start mb-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            {item.item_code} - {item.item_name}
-          </h2>
-          <p className="text-sm text-gray-600 mt-1">📍 Store: {storeName}</p>
+          <h2 className="text-lg font-bold text-gray-900">{item.item_code} • {item.item_name}</h2>
+          <p className="text-xs text-gray-600 mt-1">📍 {storeName}</p>
         </div>
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 text-3xl font-bold"
-        >
-          ×
-        </button>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl font-light">×</button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Inventory */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
-            Inventory
-          </h3>
-          <div className="space-y-3 text-sm">
-            <div>
-              <p className="text-gray-600">Qty on Hand</p>
-              <p className="font-bold text-2xl">{item.quantity_on_hand}</p>
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+          <h3 className="text-sm font-bold text-blue-900 mb-3 pb-2 border-b border-blue-300">📦 Inventory</h3>
+          <div className="space-y-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-gray-700">Qty on Hand</span>
+              <span className="font-bold text-blue-900">{item.quantity_on_hand}</span>
             </div>
-            <div>
-              <p className="text-gray-600">Reserved</p>
-              <p className="font-semibold">{item.reserved_quantity}</p>
+            <div className="flex justify-between">
+              <span className="text-gray-700">Reserved</span>
+              <span className="font-semibold text-amber-700">{item.reserved_quantity}</span>
             </div>
-            <div>
-              <p className="text-gray-600">Available</p>
-              <p className="font-semibold text-green-600">{item.available_quantity}</p>
+            <div className="flex justify-between">
+              <span className="text-gray-700">Available</span>
+              <span className="font-bold text-emerald-700">{item.available_quantity}</span>
             </div>
-            <div>
-              <p className="text-gray-600">Reorder Level</p>
-              <p className="font-semibold">{item.reorder_level}</p>
+            <div className="flex justify-between pt-2 border-t border-blue-300">
+              <span className="text-gray-700">Reorder Level</span>
+              <span className="font-semibold">{item.reorder_level}</span>
             </div>
-            <div>
-              <p className="text-gray-600">Unit of Measure</p>
-              <p className="font-semibold">{item.unit_of_measure}</p>
+            <div className="flex justify-between">
+              <span className="text-gray-700">Unit</span>
+              <span className="font-semibold">{item.unit_of_measure}</span>
             </div>
           </div>
         </div>
 
         {/* Pricing */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
-            Pricing
-          </h3>
-          <div className="space-y-3 text-sm">
-            <div>
-              <p className="text-gray-600">Cost Price</p>
-              <p className="font-semibold text-lg">LKR {item.cost_price.toLocaleString()}</p>
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+          <h3 className="text-sm font-bold text-purple-900 mb-3 pb-2 border-b border-purple-300">💰 Pricing</h3>
+          <div className="space-y-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-gray-700">Cost Price</span>
+              <span className="font-bold">LKR {(item.cost_price / 1000).toFixed(1)}K</span>
             </div>
-            <div>
-              <p className="text-gray-600">Retail Price</p>
-              <p className="font-semibold text-lg">LKR {item.retail_price.toLocaleString()}</p>
+            <div className="flex justify-between">
+              <span className="text-gray-700">Retail Price</span>
+              <span className="font-bold text-emerald-700">LKR {(item.retail_price / 1000).toFixed(1)}K</span>
             </div>
-            <div>
-              <p className="text-gray-600">Wholesale Price</p>
-              <p className="font-semibold text-lg">LKR {item.wholesale_price.toLocaleString()}</p>
+            <div className="flex justify-between">
+              <span className="text-gray-700">Wholesale</span>
+              <span className="font-semibold">LKR {(item.wholesale_price / 1000).toFixed(1)}K</span>
             </div>
-            <div>
-              <p className="text-gray-600">Profit per Unit</p>
-              <p className="font-semibold text-green-600">
-                LKR {item.profit_margin_per_unit.toLocaleString()}
-              </p>
+            <div className="flex justify-between pt-2 border-t border-purple-300">
+              <span className="text-gray-700">Profit/Unit</span>
+              <span className="font-bold text-emerald-700">LKR {(item.profit_margin_per_unit / 1000).toFixed(1)}K</span>
             </div>
           </div>
         </div>
 
         {/* Valuations */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
-            Valuations
-          </h3>
-          <div className="space-y-3 text-sm">
-            <div>
-              <p className="text-gray-600">Cost Valuation</p>
-              <p className="font-semibold">LKR {item.cost_valuation.toLocaleString()}</p>
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-4 rounded-lg border border-emerald-200">
+          <h3 className="text-sm font-bold text-emerald-900 mb-3 pb-2 border-b border-emerald-300">📊 Valuations</h3>
+          <div className="space-y-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-gray-700">Cost Val</span>
+              <span className="font-semibold">LKR {(item.cost_valuation / 100000).toFixed(0)}L</span>
             </div>
-            <div>
-              <p className="text-gray-600">Retail Valuation</p>
-              <p className="font-semibold text-green-600">LKR {item.retail_valuation.toLocaleString()}</p>
+            <div className="flex justify-between">
+              <span className="text-gray-700">Retail Val</span>
+              <span className="font-bold text-emerald-700">LKR {(item.retail_valuation / 100000).toFixed(0)}L</span>
             </div>
-            <div>
-              <p className="text-gray-600">Profit Margin</p>
-              <p className="font-semibold text-green-600">LKR {item.profit_margin_total.toLocaleString()}</p>
+            <div className="flex justify-between pt-2 border-t border-emerald-300">
+              <span className="text-gray-700">Profit Margin</span>
+              <span className="font-bold text-emerald-700">LKR {(item.profit_margin_total / 100000).toFixed(0)}L</span>
             </div>
-            <div>
-              <p className="text-gray-600">Margin %</p>
-              <p className="font-semibold">
-                {item.retail_price > 0
-                  ? ((item.profit_margin_per_unit / item.retail_price) * 100).toFixed(1)
-                  : 0}
-                %
-              </p>
+            <div className="flex justify-between">
+              <span className="text-gray-700">Margin %</span>
+              <span className="font-bold text-emerald-700">
+                {item.retail_price > 0 ? ((item.profit_margin_per_unit / item.retail_price) * 100).toFixed(1) : 0}%
+              </span>
             </div>
           </div>
         </div>

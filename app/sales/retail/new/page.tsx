@@ -131,24 +131,41 @@ export default function NewSaleRetailPage() {
 
   const fetchStores = async () => {
     try {
-      console.log('Fetching stores from /api/stores...');
-      const res = await fetch('/api/stores');
+      console.log('🔵 Fetching stores from /api/stores...');
+      const res = await fetch('/api/stores', {
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('📡 Response status:', res.status);
+      console.log('📡 Response ok:', res.ok);
       
       if (!res.ok) {
-        throw new Error(`Stores API error: ${res.status}`);
+        const errorText = await res.text();
+        console.error('❌ Response error:', errorText);
+        throw new Error(`Stores API error: ${res.status} - ${errorText}`);
       }
       
       const data = await res.json();
       console.log('✅ Stores response:', data);
       
-      if (data.data && Array.isArray(data.data)) {
+      // Handle both response formats
+      if (data.success && data.data && Array.isArray(data.data)) {
+        console.log('✅ Setting stores from data.data:', data.data.length);
         setStores(data.data);
+      } else if (data.stores && Array.isArray(data.stores)) {
+        console.log('✅ Setting stores from data.stores:', data.stores.length);
+        setStores(data.stores);
       } else {
-        console.warn('Invalid stores data format:', data);
+        console.warn('⚠️ Invalid stores data format:', data);
+        setStores([]);
       }
     } catch (err) {
       console.error('❌ Error fetching stores:', err);
-      setError('Failed to load stores');
+      setError(`Failed to load stores: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setStores([]);
     }
   };
 

@@ -68,13 +68,15 @@ export default function Sidebar() {
           {expandedMenus.masters && (
             <div className="space-y-0.5 mt-1">
               {menuItem('Suppliers', '/masters/suppliers')}
-              {menuItem('Supplier OP Balance', '/masters/supplier-opening-balance')}
               {menuItem('Customers', '/masters/customers')}
-              {menuItem('Customer OP Balance', '/masters/customer-opening-balance')}
               {menuItem('Items', '/masters/items')}
               {menuItem('Stores', '/masters/stores')}
               {menuItem('Categories', '/masters/categories')}
               {menuItem('Employees', '/masters/employees')}
+              <div className="border-t border-gray-200 my-1 pt-1">
+                {menuItem('Supplier OP Balance', '/masters/supplier-opening-balance')}
+                {menuItem('Customer OP Balance', '/masters/customer-opening-balance')}
+              </div>
             </div>
           )}
         </div>

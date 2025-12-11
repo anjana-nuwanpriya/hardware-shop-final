@@ -25,31 +25,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('sales_retail')
-      .select(
-        `
-        id,
-        invoice_number,
-        invoice_date,
-        sale_date,
-        customer_id,
-        customers(id, name, type),
-        store_id,
-        stores(id, code, name),
-        employee_id,
-        employees(id, name),
-        payment_method,
-        payment_status,
-        subtotal,
-        discount,
-        tax,
-        total_amount,
-        description,
-        is_active,
-        created_at,
-        updated_at
-      `,
-        { count: 'exact' }
-      )
+      .select('*', { count: 'exact' })
       .eq('is_active', true)
       .order('invoice_date', { ascending: false });
 
@@ -81,9 +57,54 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fetch related data for each sale
+    const formattedSales = await Promise.all(
+      (sales || []).map(async (sale: any) => {
+        // Fetch store
+        let store = null;
+        if (sale.store_id) {
+          const { data: storeData } = await supabase
+            .from('stores')
+            .select('id, code, name, address')
+            .eq('id', sale.store_id)
+            .single();
+          store = storeData;
+        }
+
+        // Fetch customer
+        let customer = null;
+        if (sale.customer_id) {
+          const { data: customerData } = await supabase
+            .from('customers')
+            .select('id, name, type, phone, email')
+            .eq('id', sale.customer_id)
+            .single();
+          customer = customerData;
+        }
+
+        // Fetch employee
+        let employee = null;
+        if (sale.employee_id) {
+          const { data: employeeData } = await supabase
+            .from('employees')
+            .select('id, name, email')
+            .eq('id', sale.employee_id)
+            .single();
+          employee = employeeData;
+        }
+
+        return {
+          ...sale,
+          stores: store,
+          customers: customer,
+          employees: employee,
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      data: sales || [],
+      data: formattedSales || [],
       pagination: {
         total: count || 0,
         limit,

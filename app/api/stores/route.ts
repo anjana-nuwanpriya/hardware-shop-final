@@ -1,10 +1,10 @@
+import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { StoreSchema } from '@/lib/validation';
-import { storesResponse, createdResponse, serverErrorResponse } from '@/lib/api-response';
 
-// GET /api/stores
 export async function GET(request: Request) {
   try {
+    console.log('🔵 GET /api/stores called');
+    
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
 
@@ -19,54 +19,29 @@ export async function GET(request: Request) {
     }
 
     const { data, error } = await query;
-    if (error) return serverErrorResponse(error);
-    return storesResponse(data, 'Stores retrieved successfully');
-  } catch (error) {
-    return serverErrorResponse(error);
-  }
-}
-
-// POST /api/stores
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const validation = StoreSchema.safeParse(body);
-    if (!validation.success) {
-      return Response.json(
-        { success: false, errors: validation.error.issues },
-        { status: 422 }
+    
+    if (error) {
+      console.error('❌ Stores query error:', error);
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 }
       );
     }
 
-    const validatedData = validation.data;
-
-    // Check for duplicate code
-    const { data: existing } = await supabase
-      .from('stores')
-      .select('id')
-      .eq('code', validatedData.code)
-      .eq('is_active', true)
-      .single();
-
-    if (existing) {
-      return Response.json(
-        { 
-          success: false, 
-          errors: [{ path: ['code'], message: 'Store code already exists' }]
-        },
-        { status: 422 }
-      );
-    }
-
-    const { data, error } = await supabase
-      .from('stores')
-      .insert([validatedData])
-      .select()
-      .single();
-
-    if (error) return serverErrorResponse(error);
-    return createdResponse(data, 'Store created successfully');
+    console.log('✅ Stores found:', data?.length || 0);
+    
+    // Return both formats for compatibility
+    return NextResponse.json({
+      success: true,
+      data: data || [],
+      stores: data || [], // For backward compatibility with dispatch page
+      message: 'Stores retrieved successfully'
+    });
   } catch (error) {
-    return serverErrorResponse(error);
+    console.error('❌ Stores API error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch stores' },
+      { status: 500 }
+    );
   }
 }
