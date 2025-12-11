@@ -33,7 +33,6 @@ export default function CategoriesPage() {
     resolver: zodResolver(CategorySchema),
   });
 
-  // Fetch categories
   const fetchCategories = async () => {
     try {
       setLoading(true);
@@ -53,12 +52,10 @@ export default function CategoriesPage() {
     }
   };
 
-  // Initial load and search
   useEffect(() => {
     fetchCategories();
   }, [searchTerm]);
 
-  // Handle create/update
   const onSubmit = async (data: CategoryInput) => {
     try {
       setIsSubmitting(true);
@@ -92,7 +89,6 @@ export default function CategoriesPage() {
     }
   };
 
-  // Handle delete
   const handleDelete = async (id: string) => {
     try {
       setIsSubmitting(true);
@@ -115,7 +111,6 @@ export default function CategoriesPage() {
     }
   };
 
-  // Handle edit
   const handleEdit = (category: Category) => {
     setEditingId(category.id);
     setValue('name', category.name);
@@ -123,7 +118,6 @@ export default function CategoriesPage() {
     setIsModalOpen(true);
   };
 
-  // Handle cancel
   const handleCancel = () => {
     setIsModalOpen(false);
     setEditingId(null);
@@ -131,62 +125,61 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Categories</h1>
+    <div className="p-3">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-bold">Categories</h1>
         <button
           onClick={() => {
             setEditingId(null);
             reset();
             setIsModalOpen(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          className="bg-blue-600 text-white px-4 py-1 rounded text-xs font-semibold hover:bg-blue-700 transition"
         >
           + Add Category
         </button>
       </div>
 
-      {/* Search */}
-      <div className="mb-6">
+      <div className="mb-3">
         <input
           type="text"
           placeholder="Search categories by name or description..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
-      {/* Error message */}
       {error && (
-        <div className="p-4 bg-red-100 text-red-700 rounded-lg mb-4">
+        <div className="p-3 bg-red-100 text-red-700 rounded text-xs mb-3">
           {error}
         </div>
       )}
 
-      {/* Loading state */}
       {loading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-6">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="text-gray-600 mt-2 text-xs">Loading...</p>
+        </div>
       ) : categories.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-6 text-gray-500 text-xs">
           No categories found. Create one to get started!
         </div>
       ) : (
-        /* Categories table */
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+        <div className="bg-white rounded shadow overflow-hidden">
+          <table className="w-full text-xs">
+            <thead className="bg-gray-100 border-b">
               <tr>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">
                   Name
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">
                   Description
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">
                   Created
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-medium text-gray-700">
+                <th className="px-3 py-2 text-right font-semibold text-gray-700">
                   Actions
                 </th>
               </tr>
@@ -194,28 +187,30 @@ export default function CategoriesPage() {
             <tbody>
               {categories.map((category) => (
                 <tr key={category.id} className="border-b hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                  <td className="px-3 py-2 font-medium text-gray-900">
                     {category.name}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-3 py-2 text-gray-600">
                     {category.description || '-'}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-3 py-2 text-gray-600">
                     {new Date(category.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 text-right text-sm">
-                    <button
-                      onClick={() => handleEdit(category)}
-                      className="text-blue-600 hover:text-blue-800 mr-4"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(category.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      Delete
-                    </button>
+                  <td className="px-3 py-2 text-right">
+                    <div className="flex justify-end gap-1">
+                      <button
+                        onClick={() => handleEdit(category)}
+                        className="text-blue-600 hover:text-blue-800 font-semibold text-xs"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(category.id)}
+                        className="text-red-600 hover:text-red-800 font-semibold text-xs"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -224,68 +219,67 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-3">
+          <div className="bg-white rounded shadow p-4 max-w-md w-full">
+            <h2 className="text-lg font-bold mb-3">
               {editingId ? 'Edit Category' : 'Create Category'}
             </h2>
 
             {error && (
-              <div className="p-3 bg-red-100 text-red-700 rounded-lg mb-4 text-sm">
+              <div className="p-2 bg-red-100 text-red-700 rounded text-xs mb-3">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">
                   Name *
                 </label>
                 <input
                   {...register('name')}
                   type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Category name"
                 />
                 {errors.name && (
-                  <p className="text-red-500 text-sm mt-1">
+                  <p className="text-red-500 text-xs mt-0.5">
                     {errors.name.message}
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">
                   Description
                 </label>
                 <textarea
                   {...register('description')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Category description"
-                  rows={3}
+                  rows={2}
                 />
                 {errors.description && (
-                  <p className="text-red-500 text-sm mt-1">
+                  <p className="text-red-500 text-xs mt-0.5">
                     {errors.description.message}
                   </p>
                 )}
               </div>
 
-              <div className="flex gap-3 justify-end pt-4">
+              <div className="flex gap-2 justify-end pt-3">
                 <button
                   type="button"
                   onClick={handleCancel}
                   disabled={isSubmitting}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition"
+                  className="px-3 py-1 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition text-xs font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                  className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition text-xs font-semibold"
                 >
                   {isSubmitting ? 'Saving...' : 'Save'}
                 </button>
@@ -295,26 +289,25 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* Delete confirmation */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-sm w-full">
-            <h2 className="text-xl font-bold mb-4">Delete Category?</h2>
-            <p className="text-gray-600 mb-6">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-3">
+          <div className="bg-white rounded shadow p-4 max-w-sm w-full">
+            <h2 className="text-lg font-bold mb-2">Delete Category?</h2>
+            <p className="text-gray-600 mb-4 text-xs">
               Are you sure you want to delete this category? This action cannot be undone.
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setDeleteConfirm(null)}
                 disabled={isSubmitting}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition"
+                className="px-3 py-1 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition text-xs font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
+                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition text-xs font-semibold"
               >
                 {isSubmitting ? 'Deleting...' : 'Delete'}
               </button>
