@@ -44,7 +44,7 @@ export default function StoresPage() {
       const result = await response.json();
 
       if (result.success) {
-        setStores(result.data);
+  setStores(result.stores);
       } else {
         setError(result.error || 'Failed to fetch stores');
       }

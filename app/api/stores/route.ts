@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { StoreSchema } from '@/lib/validation';
-import { successResponse, createdResponse, serverErrorResponse } from '@/lib/api-response';
+import { storesResponse, createdResponse, serverErrorResponse } from '@/lib/api-response';
 
 // GET /api/stores
 export async function GET(request: Request) {
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
     const { data, error } = await query;
     if (error) return serverErrorResponse(error);
-    return successResponse(data, 'Stores retrieved successfully');
+    return storesResponse(data, 'Stores retrieved successfully');
   } catch (error) {
     return serverErrorResponse(error);
   }

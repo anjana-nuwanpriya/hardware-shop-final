@@ -52,7 +52,7 @@ export default function EmployeesPage() {
       const response = await fetch('/api/stores');
       const result = await response.json();
       if (result.success) {
-        setStores(result.data);
+        setStores(result.stores);
       }
     } catch (err) {
       console.error('Failed to fetch stores');

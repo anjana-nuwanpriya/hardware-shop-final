@@ -84,7 +84,7 @@ export default function NewOpeningStockPage() {
       const storesData = await storesRes.json();
       const suppliersData = await suppliersRes.json();
 
-      if (storesData.success) setStores(storesData.data || []);
+      if (storesData.success) setStores(storesData.stores || []);
       if (suppliersData.success) setSuppliers(suppliersData.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);

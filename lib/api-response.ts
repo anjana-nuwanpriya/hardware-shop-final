@@ -102,6 +102,52 @@ export function createdResponse<T = any>(
   );
 }
 
+// ✅ SPECIAL RESPONSE FOR STORES - Returns "stores" key instead of "data"
+export function storesResponse<T = any>(
+  arg1?: string | T | number,
+  arg2?: T | string | number,
+  arg3?: number
+): NextResponse {
+  let message: string = 'Success';
+  let data: T | undefined;
+  let status: number = 200;
+
+  if (arg1 === undefined) {
+    // No args
+  } else if (typeof arg1 === 'string') {
+    message = arg1;
+    if (typeof arg2 === 'number') {
+      status = arg2;
+    } else if (arg2 !== undefined) {
+      data = arg2 as T;
+      if (typeof arg3 === 'number') {
+        status = arg3;
+      }
+    }
+  } else if (typeof arg1 === 'number') {
+    status = arg1;
+  } else {
+    data = arg1 as T;
+    if (typeof arg2 === 'string') {
+      message = arg2;
+      if (typeof arg3 === 'number') {
+        status = arg3;
+      }
+    } else if (typeof arg2 === 'number') {
+      status = arg2;
+    }
+  }
+
+  return NextResponse.json(
+    {
+      success: true,
+      message,
+      stores: data,  // ← Returns "stores" key instead of "data"
+    },
+    { status }
+  );
+}
+
 // ✅ ERROR RESPONSES
 export function errorResponse(message: string | any = 'An error occurred', status: number = 400): NextResponse {
   const finalMessage = getErrorMessage(message);
