@@ -36,13 +36,13 @@ export default function Sidebar() {
   );
 
   return (
-    <div className="w-64 bg-gray-50 border-r border-gray-200 min-h-screen p-4">
+    <div className="w-64 bg-gray-50 border-r border-gray-200 min-h-screen p-4 overflow-y-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-blue-600">Hardware Shop</h1>
         <p className="text-sm text-gray-600">Management System</p>
       </div>
 
-      <nav className="space-y-1">
+      <nav className="space-y-2">
         {/* Dashboard */}
         <Link href="/dashboard">
           <div
@@ -62,53 +62,17 @@ export default function Sidebar() {
             onClick={() => toggleMenu('masters')}
             className="w-full px-4 py-2 font-semibold text-gray-800 hover:bg-gray-100 rounded flex items-center justify-between"
           >
-            <span>Masters</span>
-            <span>{expandedMenus.masters ? '▼' : '▶'}</span>
+            <span>1. Masters</span>
+            <span className="text-sm">{expandedMenus.masters ? '▼' : '▶'}</span>
           </button>
           {expandedMenus.masters && (
             <div className="space-y-1 mt-2">
-              {menuItem('Categories', '/masters/categories')}
               {menuItem('Suppliers', '/masters/suppliers')}
               {menuItem('Customers', '/masters/customers')}
-              {menuItem('Items/Products', '/masters/items')}
+              {menuItem('Items', '/masters/items')}
               {menuItem('Stores', '/masters/stores')}
+              {menuItem('Categories', '/masters/categories')}
               {menuItem('Employees', '/masters/employees')}
-            </div>
-          )}
-        </div>
-
-        {/* Stock */}
-        <div>
-          <button
-            onClick={() => toggleMenu('stock')}
-            className="w-full px-4 py-2 font-semibold text-gray-800 hover:bg-gray-100 rounded flex items-center justify-between"
-          >
-            <span>Stock Management</span>
-            <span>{expandedMenus.stock ? '▼' : '▶'}</span>
-          </button>
-          {expandedMenus.stock && (
-            <div className="space-y-1 mt-2">
-              {menuItem('Opening Stock', '/stock/opening-stock')}
-              {menuItem('Current Stock', '/stock/current-stock')}
-              {menuItem('Adjustments', '/stock/adjustments')}
-            </div>
-          )}
-        </div>
-
-        {/* Purchase */}
-        <div>
-          <button
-            onClick={() => toggleMenu('purchase')}
-            className="w-full px-4 py-2 font-semibold text-gray-800 hover:bg-gray-100 rounded flex items-center justify-between"
-          >
-            <span>Purchase</span>
-            <span>{expandedMenus.purchase ? '▼' : '▶'}</span>
-          </button>
-          {expandedMenus.purchase && (
-            <div className="space-y-1 mt-2">
-              {menuItem('Purchase Orders', '/purchase/orders')}
-              {menuItem('Goods Received', '/purchase/grn')}
-              {menuItem('Purchase Returns', '/purchase/returns')}
             </div>
           )}
         </div>
@@ -119,15 +83,51 @@ export default function Sidebar() {
             onClick={() => toggleMenu('sales')}
             className="w-full px-4 py-2 font-semibold text-gray-800 hover:bg-gray-100 rounded flex items-center justify-between"
           >
-            <span>Sales</span>
-            <span>{expandedMenus.sales ? '▼' : '▶'}</span>
+            <span>2. Sales</span>
+            <span className="text-sm">{expandedMenus.sales ? '▼' : '▶'}</span>
           </button>
           {expandedMenus.sales && (
             <div className="space-y-1 mt-2">
               {menuItem('Retail Sales', '/sales/retail')}
               {menuItem('Wholesale Sales', '/sales/wholesale')}
-              {menuItem('Sales Returns', '/sales/returns')}
               {menuItem('Quotations', '/sales/quotations')}
+              {menuItem('Sales Returns', '/sales/returns')}
+            </div>
+          )}
+        </div>
+
+        {/* Purchase */}
+        <div>
+          <button
+            onClick={() => toggleMenu('purchase')}
+            className="w-full px-4 py-2 font-semibold text-gray-800 hover:bg-gray-100 rounded flex items-center justify-between"
+          >
+            <span>3. Purchase</span>
+            <span className="text-sm">{expandedMenus.purchase ? '▼' : '▶'}</span>
+          </button>
+          {expandedMenus.purchase && (
+            <div className="space-y-1 mt-2">
+              {menuItem('Purchase Orders', '/purchase/orders')}
+              {menuItem('Goods Received', '/purchase/grn')}
+              {menuItem('Purchase Returns', '/purchase/returns')}
+            </div>
+          )}
+        </div>
+
+        {/* Stock Management */}
+        <div>
+          <button
+            onClick={() => toggleMenu('stock')}
+            className="w-full px-4 py-2 font-semibold text-gray-800 hover:bg-gray-100 rounded flex items-center justify-between"
+          >
+            <span>4. Stock Management</span>
+            <span className="text-sm">{expandedMenus.stock ? '▼' : '▶'}</span>
+          </button>
+          {expandedMenus.stock && (
+            <div className="space-y-1 mt-2">
+              {menuItem('Opening Stock', '/stock/opening-stock')}
+              {menuItem('Current Stock', '/stock/current-stock')}
+              {menuItem('Adjustments', '/stock/adjustments')}
             </div>
           )}
         </div>
@@ -138,8 +138,8 @@ export default function Sidebar() {
             onClick={() => toggleMenu('payments')}
             className="w-full px-4 py-2 font-semibold text-gray-800 hover:bg-gray-100 rounded flex items-center justify-between"
           >
-            <span>Payments</span>
-            <span>{expandedMenus.payments ? '▼' : '▶'}</span>
+            <span>5. Payments</span>
+            <span className="text-sm">{expandedMenus.payments ? '▼' : '▶'}</span>
           </button>
           {expandedMenus.payments && (
             <div className="space-y-1 mt-2">
@@ -155,8 +155,8 @@ export default function Sidebar() {
             onClick={() => toggleMenu('reports')}
             className="w-full px-4 py-2 font-semibold text-gray-800 hover:bg-gray-100 rounded flex items-center justify-between"
           >
-            <span>Reports</span>
-            <span>{expandedMenus.reports ? '▼' : '▶'}</span>
+            <span>6. Reports</span>
+            <span className="text-sm">{expandedMenus.reports ? '▼' : '▶'}</span>
           </button>
           {expandedMenus.reports && (
             <div className="space-y-1 mt-2">

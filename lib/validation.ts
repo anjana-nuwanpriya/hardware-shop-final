@@ -192,20 +192,6 @@ export const PurchaseReturnSchema = z.object({
 export type PurchaseReturn = z.infer<typeof PurchaseReturnSchema>;
 export type PurchaseReturnInput = z.infer<typeof PurchaseReturnSchema>;
 
-// Quotation Schema
-export const QuotationSchema = z.object({
-  quotation_number: z.string().min(1, 'Quotation number is required'),
-  customer_id: z.string().uuid('Customer is required'),
-  store_id: z.string().uuid('Store is required'),
-  valid_until: z.string().nullable().optional(),
-  status: z.enum(['active', 'expired', 'converted', 'cancelled']).nullable().optional(),
-  terms_conditions: z.string().nullable().optional(),
-  notes: z.string().nullable().optional(),
-});
-
-export type Quotation = z.infer<typeof QuotationSchema>;
-export type QuotationInput = z.infer<typeof QuotationSchema>;
-
 // Opening Stock Schema
 export const OpeningStockSchema = z.object({
   ref_number: z.string().min(1, 'Reference number is required'),
@@ -274,3 +260,155 @@ export const SalesWholesaleReturnSchema = z.object({
 
 export type SalesWholesaleReturn = z.infer<typeof SalesWholesaleReturnSchema>;
 export type SalesWholesaleReturnInput = z.infer<typeof SalesWholesaleReturnSchema>;
+
+// ============================================================================
+// QUOTATION SCHEMAS
+// ============================================================================
+
+// Quotation Item Schema
+export const QuotationItemSchema = z.object({
+  id: z.string().uuid().optional(),
+  quotation_id: z.string().uuid().optional(),
+  item_id: z.string().uuid({ message: 'Item is required' }),
+  batch_no: z.string().optional().nullable(),
+  quantity: z.number().positive({ message: 'Quantity must be greater than 0' }),
+  unit_price: z.number().nonnegative({ message: 'Price cannot be negative' }),
+  discount_percent: z.number().min(0).max(100).default(0),
+  discount_value: z.number().nonnegative().default(0),
+  tax_value: z.number().nonnegative().default(0),
+  net_value: z.number().nonnegative(),
+});
+
+export type QuotationItem = z.infer<typeof QuotationItemSchema>;
+
+// Create Quotation Schema
+export const CreateQuotationSchema = z.object({
+  customer_id: z.string().uuid({ message: 'Customer is required' }),
+  store_id: z.string().uuid({ message: 'Store is required' }),
+  quotation_date: z.string().optional(),
+  valid_until: z.string({ message: 'Valid until date is required' }),
+  terms_conditions: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  items: z.array(QuotationItemSchema).min(1, 'At least one item is required'),
+});
+
+export type CreateQuotation = z.infer<typeof CreateQuotationSchema>;
+
+// Update Quotation Schema
+export const UpdateQuotationSchema = z.object({
+  valid_until: z.string().optional(),
+  terms_conditions: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  status: z.enum(['active', 'expired', 'converted', 'cancelled']).optional(),
+  items: z.array(QuotationItemSchema).optional(),
+});
+
+export type UpdateQuotation = z.infer<typeof UpdateQuotationSchema>;
+
+// Convert Quotation Schema
+export const ConvertQuotationSchema = z.object({
+  sale_type: z.enum(['retail', 'wholesale'], { message: 'Sale type must be retail or wholesale' }),
+  item_ids: z.array(z.string().uuid()).optional(), // If not provided, convert all items
+  discount: z.number().nonnegative().default(0),
+  payment_method: z.string().optional(),
+  payment_status: z.enum(['unpaid', 'paid']).default('unpaid'),
+});
+
+export type ConvertQuotation = z.infer<typeof ConvertQuotationSchema>;
+
+// Quotation Response Schema
+export const QuotationResponseSchema = z.object({
+  id: z.string().uuid(),
+  quotation_number: z.string(),
+  quotation_date: z.string(),
+  customer_id: z.string().uuid(),
+  customer_name: z.string().optional(),
+  store_id: z.string().uuid(),
+  store_name: z.string().optional(),
+  valid_until: z.string(),
+  subtotal: z.number(),
+  discount: z.number(),
+  tax: z.number(),
+  total_amount: z.number(),
+  status: z.enum(['active', 'expired', 'converted', 'cancelled']),
+  terms_conditions: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  is_active: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export type QuotationResponse = z.infer<typeof QuotationResponseSchema>;
+
+// Quotation List Item Schema (for list views)
+export const QuotationListItemSchema = z.object({
+  id: z.string().uuid(),
+  quotation_number: z.string(),
+  quotation_date: z.string(),
+  customer_id: z.string().uuid(),
+  customer_name: z.string(),
+  store_id: z.string().uuid(),
+  store_name: z.string(),
+  valid_until: z.string(),
+  subtotal: z.number(),
+  discount: z.number(),
+  tax: z.number(),
+  total_amount: z.number(),
+  status: z.enum(['active', 'expired', 'converted', 'cancelled']),
+  is_active: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export type QuotationListItem = z.infer<typeof QuotationListItemSchema>;
+
+// Quotation Detail Schema (with items)
+export const QuotationDetailSchema = z.object({
+  id: z.string().uuid(),
+  quotation_number: z.string(),
+  quotation_date: z.string(),
+  customer_id: z.string().uuid(),
+  customer: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    type: z.string().optional(),
+    phone: z.string().optional(),
+    email: z.string().optional(),
+  }).optional(),
+  store_id: z.string().uuid(),
+  store: z.object({
+    id: z.string().uuid(),
+    code: z.string(),
+    name: z.string(),
+  }).optional(),
+  valid_until: z.string(),
+  subtotal: z.number(),
+  discount: z.number(),
+  tax: z.number(),
+  total_amount: z.number(),
+  status: z.enum(['active', 'expired', 'converted', 'cancelled']),
+  terms_conditions: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  is_active: z.boolean(),
+  items: z.array(z.object({
+    id: z.string().uuid(),
+    item_id: z.string().uuid(),
+    item: z.object({
+      id: z.string().uuid(),
+      code: z.string(),
+      name: z.string(),
+      unit_of_measure: z.string().optional(),
+    }).optional(),
+    batch_no: z.string().optional().nullable(),
+    quantity: z.number(),
+    unit_price: z.number(),
+    discount_percent: z.number(),
+    discount_value: z.number(),
+    tax_value: z.number(),
+    net_value: z.number(),
+  })).optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export type QuotationDetail = z.infer<typeof QuotationDetailSchema>;
