@@ -9,32 +9,49 @@ export async function GET(request: NextRequest) {
 
     if (!storeId) {
       return NextResponse.json(
-        { error: 'store_id is required' },
+        { success: false, error: 'store_id is required' },
         { status: 400 }
       );
     }
 
-    // Fetch items with stock for this store
+    // Fetch items with stock for this store with full item details
     const { data, error } = await supabase
       .from('item_store_stock')
-      .select('id, item_id, store_id, quantity_on_hand, items(id, code, name, retail_price)')
+      .select(`
+        id, 
+        item_id, 
+        store_id, 
+        quantity_on_hand,
+        items (
+          id, 
+          code, 
+          name, 
+          retail_price,
+          unit_of_measure,
+          barcode,
+          cost_price,
+          wholesale_price
+        )
+      `)
       .eq('store_id', storeId)
-      .gt('quantity_on_hand', 0)
-      .order('items(name)', { ascending: true });
+      .gt('quantity_on_hand', 0);
 
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json(
-        { error: error.message },
+        { success: false, error: error.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ data: data || [] });
+    return NextResponse.json({ 
+      success: true, 
+      data: data || [] 
+    });
   } catch (err) {
     console.error('Error:', err);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }

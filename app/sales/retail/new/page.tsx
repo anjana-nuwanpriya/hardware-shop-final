@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 interface Item {
   id: string;
   code: string;
   name: string;
   retail_price: number;
+  unit_of_measure: string;
+  barcode?: string;
 }
 
 interface ItemStoreStock {
@@ -24,739 +25,967 @@ interface LineItem {
   item_id: string;
   item_code: string;
   item_name: string;
+  batch_no: string;
+  price: number;
   quantity: number;
-  unit_price: number;
   discount_percent: number;
   discount_value: number;
+  net_value: number;
   available_qty: number;
-  batch_no: string;
 }
 
 interface Store {
   id: string;
   code: string;
   name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+}
+
+interface Employee {
+  id: string;
+  name: string;
 }
 
 interface Customer {
   id: string;
   name: string;
-  type: string;
+  phone?: string;
 }
 
-export default function NewSaleRetailPage() {
+interface SavedSale {
+  id: string;
+  invoice_number: string;
+  invoice_date: string;
+  total_amount: number;
+}
+
+export default function NewRetailSalePage() {
   const router = useRouter();
+  const itemSearchRef = useRef<HTMLInputElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // State
   const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
-
-  // Data
+  const [success, setSuccess] = useState('');
+  
+  // Master data
   const [stores, setStores] = useState<Store[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [storeItems, setStoreItems] = useState<ItemStoreStock[]>([]);
-
+  
   // Search
   const [itemSearch, setItemSearch] = useState('');
-  const [filteredItems, setFilteredItems] = useState<ItemStoreStock[]>([]);
-  const [openDropdown, setOpenDropdown] = useState<string>('');
-  const [selectedItemIndex, setSelectedItemIndex] = useState(-1);
-
-  // Form
-  const [formData, setFormData] = useState({
-    store_id: '',
-    customer_id: '',
-    employee_id: '',
-    payment_method: 'cash',
-    description: '',
-    items: [
-      {
-        id: '0',
-        item_id: '',
-        item_code: '',
-        item_name: '',
-        quantity: 1,
-        unit_price: 0,
-        discount_percent: 0,
-        discount_value: 0,
-        available_qty: 0,
-        batch_no: '',
-      } as LineItem,
-    ],
-  });
-
+  const [showItemDropdown, setShowItemDropdown] = useState(false);
+  const [searchResults, setSearchResults] = useState<ItemStoreStock[]>([]);
+  
+  // Form data
+  const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
+  const [refNumber, setRefNumber] = useState('');
+  const [storeId, setStoreId] = useState('');
+  const [customerId, setCustomerId] = useState('');
+  const [description, setDescription] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
+  const [items, setItems] = useState<LineItem[]>([]);
+  
+  // Payment modal
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [cashReceived, setCashReceived] = useState('');
+  const [savedSale, setSavedSale] = useState<SavedSale | null>(null);
+  
   // Fetch initial data
   useEffect(() => {
-    console.log('Component mounted, fetching stores and customers...');
     fetchStores();
+    fetchEmployees();
     fetchCustomers();
+    generateRefNumber();
   }, []);
-
-  // Fetch items when store changes
+  
+  // Set default store to "Main Store" when stores are loaded
   useEffect(() => {
-    if (formData.store_id) {
-      console.log('Store changed to:', formData.store_id);
-      fetchStoreItems();
-    } else {
-      setStoreItems([]);
-      setFilteredItems([]);
+    if (stores.length > 0 && !storeId) {
+      const mainStore = stores.find(s => s.name.toLowerCase().includes('main'));
+      if (mainStore) {
+        setStoreId(mainStore.id);
+      }
     }
-  }, [formData.store_id]);
-
-  // Filter items on search
+  }, [stores]);
+  
+  // Search items when query changes
   useEffect(() => {
-    console.log('Filtering items. Search:', itemSearch, 'Total items:', storeItems.length);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
     
-    if (!formData.store_id) {
-      setFilteredItems([]);
+    if (!storeId || itemSearch.length < 2) {
+      setSearchResults([]);
+      setShowItemDropdown(false);
       return;
     }
-
-    if (itemSearch.trim() === '') {
-      const first10 = storeItems.slice(0, 10);
-      console.log('No search, showing first 10 items:', first10);
-      setFilteredItems(first10);
-    } else {
-      const searchLower = itemSearch.toLowerCase();
-      const filtered = storeItems.filter((si) => {
-        const item = si.items;
-        if (!item) return false;
-        const matches =
-          (item.name && item.name.toLowerCase().includes(searchLower)) ||
-          (item.code && item.code.toLowerCase().includes(searchLower));
-        return matches;
-      });
-      console.log('Search results for "' + itemSearch + '":', filtered);
-      setFilteredItems(filtered.slice(0, 10));
-    }
-  }, [itemSearch, formData.store_id, storeItems]);
-
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      searchItems();
+    }, 300);
+    
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [itemSearch, storeId]);
+  
   const fetchStores = async () => {
     try {
-      console.log('🔵 Fetching stores from /api/stores...');
-      const res = await fetch('/api/stores', {
-        cache: 'no-store',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      console.log('📡 Response status:', res.status);
-      console.log('📡 Response ok:', res.ok);
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('❌ Response error:', errorText);
-        throw new Error(`Stores API error: ${res.status} - ${errorText}`);
-      }
-      
+      const res = await fetch('/api/stores');
       const data = await res.json();
-      console.log('✅ Stores response:', data);
-      
-      // Handle both response formats
-      if (data.success && data.data && Array.isArray(data.data)) {
-        console.log('✅ Setting stores from data.data:', data.data.length);
-        setStores(data.data);
-      } else if (data.stores && Array.isArray(data.stores)) {
-        console.log('✅ Setting stores from data.stores:', data.stores.length);
-        setStores(data.stores);
-      } else {
-        console.warn('⚠️ Invalid stores data format:', data);
-        setStores([]);
+      if (data.success) {
+        setStores(data.data || data.stores || []);
       }
     } catch (err) {
-      console.error('❌ Error fetching stores:', err);
-      setError(`Failed to load stores: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      setStores([]);
+      console.error('Error fetching stores:', err);
     }
   };
-
+  
+  const fetchEmployees = async () => {
+    try {
+      const res = await fetch('/api/employees');
+      const data = await res.json();
+      if (data.success) {
+        setEmployees(data.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching employees:', err);
+    }
+  };
+  
   const fetchCustomers = async () => {
     try {
-      console.log('Fetching customers from /api/customers...');
       const res = await fetch('/api/customers');
-      
-      if (!res.ok) {
-        throw new Error(`Customers API error: ${res.status}`);
-      }
-      
       const data = await res.json();
-      console.log('✅ Customers response:', data);
-      
-      if (data.data && Array.isArray(data.data)) {
-        setCustomers(data.data);
-      } else {
-        console.warn('Invalid customers data format:', data);
+      if (data.success) {
+        setCustomers(data.data || []);
       }
     } catch (err) {
-      console.error('❌ Error fetching customers:', err);
+      console.error('Error fetching customers:', err);
     }
   };
-
-  const fetchStoreItems = async () => {
+  
+  const searchItems = async () => {
     try {
-      console.log('Fetching items for store:', formData.store_id);
-      const url = `/api/item-store-stock?store_id=${formData.store_id}`;
-      console.log('API URL:', url);
-      
-      const res = await fetch(url);
-      
-      if (!res.ok) {
-        throw new Error(`Item stock API error: ${res.status}`);
-      }
-      
+      setSearching(true);
+      const res = await fetch(`/api/item-store-stock?store_id=${storeId}`);
       const data = await res.json();
-      console.log('✅ Item stock response:', data);
       
-      if (data.data && Array.isArray(data.data)) {
-        const filtered = data.data.filter((item: ItemStoreStock) => item.quantity_on_hand > 0);
-        console.log('Filtered items (qty > 0):', filtered);
-        setStoreItems(filtered);
-      } else {
-        console.warn('Invalid item data format:', data);
-        setStoreItems([]);
-      }
-    } catch (err) {
-      console.error('❌ Error fetching store items:', err);
-      setError('Failed to fetch items for selected store');
-      setStoreItems([]);
-    }
-  };
-
-  const handleSelectItem = (storeItem: ItemStoreStock) => {
-    if (selectedItemIndex >= 0) {
-      const item = storeItem.items;
-      const newItems = [...formData.items];
-      const discountValue =
-        newItems[selectedItemIndex].unit_price *
-        newItems[selectedItemIndex].quantity *
-        (newItems[selectedItemIndex].discount_percent / 100);
-
-      newItems[selectedItemIndex] = {
-        ...newItems[selectedItemIndex],
-        item_id: storeItem.item_id,
-        item_code: item?.code || '',
-        item_name: item?.name || '',
-        unit_price: item?.retail_price || 0,
-        available_qty: storeItem.quantity_on_hand,
-        discount_value: discountValue,
-      };
-      setFormData({ ...formData, items: newItems });
-    }
-    setItemSearch('');
-    setFilteredItems([]);
-    setOpenDropdown('');
-    setError('');
-  };
-
-  const handleAddItem = () => {
-    const newId = String(Math.max(...formData.items.map((i) => parseInt(i.id) || 0), 0) + 1);
-    setFormData({
-      ...formData,
-      items: [
-        ...formData.items,
-        {
-          id: newId,
-          item_id: '',
-          item_code: '',
-          item_name: '',
-          quantity: 1,
-          unit_price: 0,
-          discount_percent: 0,
-          discount_value: 0,
-          available_qty: 0,
-          batch_no: '',
-        },
-      ],
-    });
-  };
-
-  const handleRemoveItem = (index: number) => {
-    if (formData.items.length > 1) {
-      setFormData({
-        ...formData,
-        items: formData.items.filter((_, i) => i !== index),
-      });
-    }
-  };
-
-  const handleItemChange = (
-    index: number,
-    field: keyof LineItem,
-    value: string | number
-  ) => {
-    const newItems = [...formData.items];
-    const item = newItems[index];
-
-    if (field === 'quantity') {
-      const numValue = typeof value === 'string' ? parseInt(value) || 1 : value;
-      if (numValue > item.available_qty) {
-        setError(
-          `Cannot exceed available stock of ${item.available_qty} units for ${item.item_name}`
-        );
+      if (!data.success || !data.data) {
+        setSearchResults([]);
+        setShowItemDropdown(true);
         return;
       }
-      item.quantity = Math.max(1, numValue);
-      item.discount_value =
-        item.unit_price * item.quantity * (item.discount_percent / 100);
-    } else if (field === 'discount_percent') {
-      const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
-      item.discount_percent = numValue;
-      item.discount_value =
-        item.unit_price * item.quantity * (item.discount_percent / 100);
-    } else if (field === 'discount_value') {
-      const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
-      item.discount_value = numValue;
-    } else if (field === 'unit_price') {
-      const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
-      item.unit_price = numValue;
-      item.discount_value =
-        item.unit_price * item.quantity * (item.discount_percent / 100);
-    } else {
-      (item[field] as unknown) = value;
+      
+      const searchLower = itemSearch.toLowerCase();
+      const filtered = data.data.filter((stock: ItemStoreStock) => {
+        const item = stock.items;
+        if (!item) return false;
+        
+        return (
+          item.name.toLowerCase().includes(searchLower) ||
+          item.code.toLowerCase().includes(searchLower) ||
+          (item.barcode && item.barcode.toLowerCase().includes(searchLower))
+        );
+      });
+      
+      setSearchResults(filtered.slice(0, 20));
+      setShowItemDropdown(true);
+    } catch (err) {
+      console.error('Error searching items:', err);
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
     }
-
-    setFormData({ ...formData, items: newItems });
+  };
+  
+  const generateRefNumber = async () => {
+    try {
+      const res = await fetch('/api/sales-retail/next-number');
+      const data = await res.json();
+      if (data.success) {
+        setRefNumber(data.data.next_number);
+      }
+    } catch (err) {
+      const fallback = `SINV-${Date.now()}`;
+      setRefNumber(fallback);
+    }
+  };
+  
+  const handleItemSelect = (storeItem: ItemStoreStock) => {
+    const item = storeItem.items;
+    if (!item) return;
+    
+    const existingIndex = items.findIndex(i => i.item_id === storeItem.item_id);
+    
+    if (existingIndex >= 0) {
+      const newItems = [...items];
+      if (newItems[existingIndex].quantity < storeItem.quantity_on_hand) {
+        newItems[existingIndex].quantity += 1;
+        calculateLineItem(newItems[existingIndex]);
+        setItems(newItems);
+      } else {
+        setError(`Maximum stock (${storeItem.quantity_on_hand}) reached for ${item.name}`);
+        setTimeout(() => setError(''), 3000);
+      }
+    } else {
+      const newItem: LineItem = {
+        id: `item-${Date.now()}-${Math.random()}`,
+        item_id: storeItem.item_id,
+        item_code: item.code,
+        item_name: item.name,
+        batch_no: '',
+        price: item.retail_price,
+        quantity: 1,
+        discount_percent: 0,
+        discount_value: 0,
+        net_value: item.retail_price,
+        available_qty: storeItem.quantity_on_hand,
+      };
+      setItems([...items, newItem]);
+    }
+    
+    setItemSearch('');
+    setSearchResults([]);
+    setShowItemDropdown(false);
+    itemSearchRef.current?.focus();
+  };
+  
+  const calculateLineItem = (item: LineItem) => {
+    const subtotal = item.price * item.quantity;
+    item.discount_value = subtotal * (item.discount_percent / 100);
+    item.net_value = subtotal - item.discount_value;
+  };
+  
+  const handleItemChange = (index: number, field: keyof LineItem, value: any) => {
+    const newItems = [...items];
+    const item = newItems[index];
+    
+    if (field === 'quantity') {
+      const qty = parseInt(value) || 0;
+      if (qty > item.available_qty) {
+        setError(`Cannot exceed available stock of ${item.available_qty}`);
+        setTimeout(() => setError(''), 3000);
+        return;
+      }
+      item.quantity = qty;
+    } else if (field === 'price') {
+      item.price = parseFloat(value) || 0;
+    } else if (field === 'discount_percent') {
+      item.discount_percent = parseFloat(value) || 0;
+    } else if (field === 'discount_value') {
+      item.discount_value = parseFloat(value) || 0;
+    } else {
+      (item as any)[field] = value;
+    }
+    
+    calculateLineItem(item);
+    setItems(newItems);
     setError('');
   };
-
-  const openItemSearch = (index: number) => {
-    if (!formData.store_id) {
-      setError('Please select a store first');
+  
+  const handleRemoveItem = (index: number) => {
+    setItems(items.filter((_, i) => i !== index));
+  };
+  
+  const calculateTotals = () => {
+    const totalValue = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalDiscount = items.reduce((sum, item) => sum + item.discount_value, 0);
+    const netTotal = totalValue - totalDiscount;
+    return { totalValue, totalDiscount, netTotal };
+  };
+  
+  const handleSave = async () => {
+    if (!storeId) {
+      setError('Please select a store');
       return;
     }
-    setSelectedItemIndex(index);
-    setOpenDropdown(String(index));
-    setItemSearch('');
-  };
-
-  const calculateLineTotal = (item: LineItem) => {
-    const subtotal = item.unit_price * item.quantity;
-    const discountValue = item.discount_value || 0;
-    return subtotal - discountValue;
-  };
-
-  const calculateTotal = () => {
-    return formData.items.reduce((total, item) => total + calculateLineTotal(item), 0);
-  };
-
-  const validateForm = () => {
-    if (!formData.store_id) {
-      setError('Select a store');
-      return false;
+    
+    if (items.length === 0) {
+      setError('Please add at least one item');
+      return;
     }
-
-    if (formData.items.length === 0) {
-      setError('Add at least one item');
-      return false;
-    }
-
-    for (const item of formData.items) {
-      if (!item.item_id) {
-        setError('All items must be selected');
-        return false;
-      }
+    
+    for (const item of items) {
       if (item.quantity <= 0) {
-        setError('All items must have quantity > 0');
-        return false;
-      }
-      if (item.unit_price <= 0) {
-        setError('All items must have price > 0');
-        return false;
+        setError(`Invalid quantity for ${item.item_name}`);
+        return;
       }
       if (item.quantity > item.available_qty) {
-        setError(`${item.item_name}: Insufficient stock`);
-        return false;
+        setError(`Insufficient stock for ${item.item_name}`);
+        return;
       }
     }
-
-    return true;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+    
     try {
       setLoading(true);
       setError('');
-
+      
+      const { netTotal, totalDiscount } = calculateTotals();
+      
       const res = await fetch('/api/sales-retail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer_id: formData.customer_id || null,
-          store_id: formData.store_id,
-          employee_id: formData.employee_id || null,
-          payment_method: formData.payment_method,
-          description: formData.description || null,
-          items: formData.items.map((item) => ({
+          store_id: storeId,
+          customer_id: customerId || null,
+          employee_id: employeeId || null,
+          payment_method: 'cash',
+          payment_status: 'paid',
+          description: description || null,
+          sale_date: saleDate,
+          subtotal: netTotal + totalDiscount,
+          discount: totalDiscount,
+          total_amount: netTotal,
+          items: items.map(item => ({
             item_id: item.item_id,
+            batch_no: item.batch_no || null,
             quantity: item.quantity,
-            unit_price: item.unit_price,
+            unit_price: item.price,
             discount_percent: item.discount_percent,
             discount_value: item.discount_value,
-            batch_no: item.batch_no || null,
+            net_value: item.net_value,
           })),
         }),
       });
-
+      
+      const data = await res.json();
+      
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to create sale');
+        throw new Error(data.error || 'Failed to create sale');
       }
-
-      const result = await res.json();
-      router.push(`/sales/retail?success=${result.data.invoice_number}`);
+      
+      setSuccess('Sale created successfully!');
+      setSavedSale(data.data);
+      
+      return data.data;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create sale');
-      console.error('Error:', err);
+      throw err;
     } finally {
       setLoading(false);
     }
   };
-
-  const total = calculateTotal();
-
+  
+  const handlePrint = async () => {
+    if (!storeId) {
+      setError('Please select a store');
+      return;
+    }
+    
+    if (items.length === 0) {
+      setError('Please add at least one item');
+      return;
+    }
+    
+    // Show payment modal
+    setShowPaymentModal(true);
+    setCashReceived('');
+  };
+  
+  const handleConfirmPayment = async () => {
+    const cash = parseFloat(cashReceived) || 0;
+    const totals = calculateTotals();
+    
+    if (cash < totals.netTotal) {
+      setError('Insufficient cash amount');
+      return;
+    }
+    
+    try {
+      // Save the sale first
+      const sale = await handleSave();
+      
+      if (!sale) {
+        throw new Error('Failed to save sale');
+      }
+      
+      // Close modal and print
+      setShowPaymentModal(false);
+      
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        window.print();
+        
+        // After print, redirect to sales list
+        setTimeout(() => {
+          router.push('/sales/retail');
+        }, 1000);
+      }, 500);
+      
+    } catch (err) {
+      console.error('Error during print:', err);
+      setError('Failed to process payment and print');
+    }
+  };
+  
+  const handleDelete = () => {
+    if (confirm('Are you sure you want to clear all items?')) {
+      setItems([]);
+      setItemSearch('');
+      setDescription('');
+    }
+  };
+  
+  const handleCancel = () => {
+    if (items.length > 0) {
+      if (confirm('Discard unsaved changes?')) {
+        router.push('/sales/retail');
+      }
+    } else {
+      router.push('/sales/retail');
+    }
+  };
+  
+  const handleExit = () => {
+    if (items.length > 0) {
+      if (confirm('Exit without saving?')) {
+        router.push('/dashboard');
+      }
+    } else {
+      router.push('/dashboard');
+    }
+  };
+  
+  const totals = calculateTotals();
+  const changeAmount = (parseFloat(cashReceived) || 0) - totals.netTotal;
+  const selectedStore = stores.find(s => s.id === storeId);
+  const selectedCustomer = customers.find(c => c.id === customerId);
+  const selectedEmployee = employees.find(e => e.id === employeeId);
+  
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <Link
-          href="/sales/retail"
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-        >
-          ← Back to Retail Sales
-        </Link>
-        <h1 className="text-3xl font-bold mt-2">New Retail Sale</h1>
-        <p className="text-gray-600 text-sm mt-1">
-          Create a new point-of-sale (POS) transaction
-        </p>
+    <>
+  
+{/* Print Bill - Professional Dot-Matrix Invoice */}
+<div className="print:block hidden">
+  <style dangerouslySetInnerHTML={{ __html: `
+    @media print {
+      @page { 
+        size: 9.5in 5.5in;
+        margin: 0;
+        padding: 0;
+      }
+      body { 
+        margin: 0;
+        padding: 0;
+        font-family: 'Courier New', monospace;
+        font-size: 10pt;
+        line-height: 1.2;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+      }
+    }
+  `}} />
+  
+  <div style={{
+    width: '9.5in',
+    height: '5.5in',
+    fontFamily: "'Courier New', monospace",
+    fontSize: '10pt',
+    lineHeight: '1.3',
+    padding: '0.3in 0.4in',
+    boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between'
+  }}>
+    {/* ==================== HEADER ==================== */}
+    <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '0.15in', marginBottom: '0.1in' }}>
+      <div style={{ fontSize: '12pt', fontWeight: 'bold', letterSpacing: '2px' }}>JANASIRI STORES</div>
+      <div style={{ fontSize: '9pt', marginTop: '2px' }}>No.171, Colombo Street, Kandy</div>
+      <div style={{ fontSize: '9pt' }}>Tel: 0814-951470 | Email: janasiri171@gmail.com</div>
+      <div style={{ fontSize: '11pt', fontWeight: 'bold', marginTop: '3px' }}>~~ WHOLESALE INVOICE ~~</div>
+    </div>
+    
+    {/* ==================== INVOICE DETAILS ==================== */}
+    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9pt', marginBottom: '0.1in', borderBottom: '1px dotted #000', paddingBottom: '0.1in' }}>
+      <div>
+        <div><strong>Invoice #:</strong> {savedSale?.invoice_number || refNumber}</div>
+        <div><strong>Date:</strong> {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}</div>
+        <div><strong>Time:</strong> {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
       </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
-          <span>{error}</span>
-          <button onClick={() => setError('')} className="text-red-700 hover:text-red-900">
-            ✕
-          </button>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
-        {/* Store & Customer Info */}
-        <div className="grid grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Store *</label>
-            <select
-              value={formData.store_id}
-              onChange={(e) => {
-                console.log('Store selected:', e.target.value);
-                setFormData({ ...formData, store_id: e.target.value });
-              }}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">
-                {stores.length === 0 ? 'Loading stores...' : 'Select Store'}
-              </option>
-              {stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.name}
-                </option>
-              ))}
-            </select>
-            {stores.length === 0 && (
-              <p className="text-xs text-orange-600 mt-1">No stores loaded</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Customer (Optional)
-            </label>
-            <select
-              value={formData.customer_id}
-              onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Walk-in Customer</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name} ({customer.type})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Method
-            </label>
-            <select
-              value={formData.payment_method}
-              onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="cash">Cash</option>
-              <option value="card">Card</option>
-              <option value="check">Check</option>
-              <option value="bank">Bank Transfer</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes (Optional)
-            </label>
-            <input
-              type="text"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Additional notes..."
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-
-        {/* Items Section */}
-        <div className="border-t pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h2 className="text-lg font-semibold">Sale Items</h2>
-              {storeItems.length > 0 && (
-                <p className="text-xs text-gray-500">
-                  {storeItems.length} items available in selected store
-                </p>
-              )}
+      <div style={{ textAlign: 'right' }}>
+        {selectedStore && (
+          <>
+            <div><strong>Store:</strong> {selectedStore.name}</div>
+            {selectedEmployee && <div><strong>Cashier:</strong> {selectedEmployee.name}</div>}
+            {selectedCustomer && <div><strong>Customer:</strong> {selectedCustomer.name}</div>}
+          </>
+        )}
+      </div>
+    </div>
+    
+    {/* ==================== ITEMS TABLE ==================== */}
+    <div style={{ marginBottom: '0.08in', flex: '1' }}>
+      <table style={{
+        width: '100%',
+        borderCollapse: 'collapse',
+        fontSize: '9pt',
+        borderTop: '1px solid #000',
+        borderBottom: '1px solid #000'
+      }}>
+        <thead>
+          <tr style={{ height: '0.25in' }}>
+            <th style={{ textAlign: 'left', paddingLeft: '2px', borderBottom: '1px dashed #000' }}>SL</th>
+            <th style={{ textAlign: 'left', paddingLeft: '4px', borderBottom: '1px dashed #000' }}>ITEM DESCRIPTION</th>
+            <th style={{ textAlign: 'right', paddingRight: '4px', borderBottom: '1px dashed #000' }}>QTY</th>
+            <th style={{ textAlign: 'right', paddingRight: '4px', borderBottom: '1px dashed #000' }}>RATE</th>
+            <th style={{ textAlign: 'right', paddingRight: '4px', borderBottom: '1px dashed #000' }}>AMOUNT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, idx) => (
+            <tr key={item.id} style={{ height: '0.22in' }}>
+              <td style={{ textAlign: 'center', paddingLeft: '2px', paddingRight: '2px' }}>{idx + 1}</td>
+              <td style={{ paddingLeft: '4px', fontSize: '8.5pt' }}>
+                <div>{item.item_name}</div>
+                <div style={{ fontSize: '8pt', color: '#666' }}>({item.item_code})</div>
+              </td>
+              <td style={{ textAlign: 'right', paddingRight: '4px' }}>{item.quantity.toFixed(2)}</td>
+              <td style={{ textAlign: 'right', paddingRight: '4px' }}>{item.price.toFixed(2)}</td>
+              <td style={{ textAlign: 'right', paddingRight: '4px', fontWeight: 'bold' }}>{item.net_value.toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    
+    {/* ==================== TOTALS SECTION ==================== */}
+    <div style={{ borderTop: '1px solid #000', borderBottom: '1px dashed #000', paddingTop: '0.08in', paddingBottom: '0.08in', marginBottom: '0.08in' }}>
+      <table style={{ width: '100%', fontSize: '9pt', marginLeft: 'auto' }}>
+        <tbody>
+          <tr>
+            <td style={{ textAlign: 'right', paddingRight: '8px', width: '70%' }}>SUBTOTAL:</td>
+            <td style={{ textAlign: 'right', paddingRight: '4px', width: '30%', fontWeight: 'bold' }}>Rs. {totals.totalValue.toFixed(2)}</td>
+          </tr>
+          {totals.totalDiscount > 0 && (
+            <tr>
+              <td style={{ textAlign: 'right', paddingRight: '8px' }}>DISCOUNT (-)</td>
+              <td style={{ textAlign: 'right', paddingRight: '4px', fontWeight: 'bold', color: '#d97706' }}>Rs. {totals.totalDiscount.toFixed(2)}</td>
+            </tr>
+          )}
+          <tr style={{ borderTop: '1px dashed #000', fontWeight: 'bold', fontSize: '10pt' }}>
+            <td style={{ textAlign: 'right', paddingRight: '8px', paddingTop: '3px' }}>TOTAL PAYABLE:</td>
+            <td style={{ textAlign: 'right', paddingRight: '4px', paddingTop: '3px' }}>Rs. {totals.netTotal.toFixed(2)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    {/* ==================== PAYMENT INFO ==================== */}
+    {cashReceived && parseFloat(cashReceived) > 0 && (
+      <div style={{ borderTop: '1px dashed #000', paddingTop: '0.08in', marginBottom: '0.08in', fontSize: '9pt' }}>
+        <table style={{ width: '100%', marginLeft: 'auto' }}>
+          <tbody>
+            <tr>
+              <td style={{ textAlign: 'right', paddingRight: '8px', width: '70%' }}>CASH RECEIVED:</td>
+              <td style={{ textAlign: 'right', paddingRight: '4px', width: '30%', fontWeight: 'bold' }}>Rs. {parseFloat(cashReceived).toFixed(2)}</td>
+            </tr>
+            <tr style={{ fontWeight: 'bold', fontSize: '10pt' }}>
+              <td style={{ textAlign: 'right', paddingRight: '8px' }}>CHANGE:</td>
+              <td style={{ textAlign: 'right', paddingRight: '4px' }}>Rs. {changeAmount.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    )}
+    
+    {/* ==================== FOOTER ==================== */}
+    <div style={{ textAlign: 'center', borderTop: '1px dashed #000', paddingTop: '0.1in', fontSize: '7.5pt', lineHeight: '1.4' }}>
+      <div>*** THANK YOU FOR YOUR BUSINESS ***</div>
+      <div style={{ marginTop: '3px' }}>JANASIRI STORES | Est. 2020</div>
+      <div>Powered by Soft-Master Technologies (Pvt) Ltd.</div>
+      <div style={{ fontSize: '7pt', marginTop: '2px' }}>Contact: 0814-951470 / 077-3889082</div>
+      <div style={{ marginTop: '3px', letterSpacing: '1px' }}>{"=" .repeat(50)}</div>
+    </div>
+  </div>
+</div> 
+      {/* Screen UI */}
+      <div className="min-h-screen bg-gray-100 py-4 px-2 print:hidden">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow p-3 mb-3">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-lg font-bold text-white">New Retail Sale</h1>
+                <p className="text-blue-100 text-xs">Point of Sale - Create New Invoice</p>
+              </div>
+              <div className="text-right">
+                <p className="text-blue-100 text-xs">Invoice No:</p>
+                <p className="text-white font-bold font-mono">{refNumber}</p>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={handleAddItem}
-              className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm font-medium"
-            >
-              + Add Item
-            </button>
           </div>
-
-          <div className="space-y-3">
-            {formData.items.map((item, index) => (
-              <div key={item.id} className="border rounded-lg bg-gray-50 p-4">
-                <div className="grid grid-cols-7 gap-2 items-end">
-                  {/* Item Selection */}
-                  <div className="col-span-2">
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Product *
-                      {item.available_qty > 0 && (
-                        <span className="text-green-600 ml-1">({item.available_qty} in stock)</span>
-                      )}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={item.item_name || item.item_code || ''}
-                        readOnly
-                        onClick={() => openItemSearch(index)}
-                        placeholder="Click to search..."
-                        className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 cursor-pointer ${
-                          !item.item_id
-                            ? 'border-red-300 bg-red-50 focus:ring-red-500'
-                            : 'border-gray-300 focus:ring-blue-500'
-                        }`}
-                      />
-                      {item.item_id && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-600 text-lg">
-                          ✓
-                        </div>
-                      )}
-
-                      {/* Dropdown */}
-                      {openDropdown === String(index) && formData.store_id && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+          
+          {/* Messages */}
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-2 mb-3 rounded">
+              <p className="text-red-800 text-xs font-medium">{error}</p>
+            </div>
+          )}
+          
+          {success && (
+            <div className="bg-green-50 border-l-4 border-green-500 p-2 mb-3 rounded">
+              <p className="text-green-800 text-xs font-medium">{success}</p>
+            </div>
+          )}
+          
+          {/* Main Card */}
+          <div className="bg-white rounded-lg shadow-lg p-4">
+            {/* Top Controls */}
+            <div className="grid grid-cols-12 gap-2 mb-3">
+              {/* Item Search */}
+              <div className="col-span-3 relative">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Item</label>
+                <input
+                  ref={itemSearchRef}
+                  type="text"
+                  value={itemSearch}
+                  onChange={(e) => {
+                    setItemSearch(e.target.value);
+                    setShowItemDropdown(true);
+                  }}
+                  onFocus={() => itemSearch.length >= 2 && setShowItemDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowItemDropdown(false), 200)}
+                  placeholder="Search name/code..."
+                  disabled={!storeId}
+                  className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                />
+                
+                {searching && (
+                  <div className="absolute right-2 top-7 text-blue-500">
+                    <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                )}
+                
+                {/* Search Dropdown */}
+                {showItemDropdown && storeId && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-48 overflow-y-auto">
+                    {searchResults.length > 0 ? (
+                      searchResults.map((si) => {
+                        const item = si.items;
+                        if (!item) return null;
+                        return (
+                          <div
+                            key={si.id}
+                            onClick={() => handleItemSelect(si)}
+                            className="p-2 hover:bg-blue-50 cursor-pointer border-b last:border-b-0"
+                          >
+                            <div className="font-medium text-xs text-gray-900">{item.name}</div>
+                            <div className="flex justify-between items-center mt-0.5 text-xs text-gray-600">
+                              <span className="text-xs">{item.code}</span>
+                              <div className="flex gap-2 text-xs">
+                                <span className="text-green-600 font-semibold">Qty: {si.quantity_on_hand}</span>
+                                <span className="text-blue-600 font-semibold">Rs. {item.retail_price}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : itemSearch.length >= 2 ? (
+                      <div className="p-2 text-xs text-gray-500 text-center">
+                        {searching ? 'Searching...' : 'No items found'}
+                      </div>
+                    ) : (
+                      <div className="p-2 text-xs text-gray-500 text-center">
+                        Type at least 2 characters
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Store */}
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Store *</label>
+                <select
+                  value={storeId}
+                  onChange={(e) => {
+                    setStoreId(e.target.value);
+                    setItems([]);
+                    setItemSearch('');
+                  }}
+                  className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Select</option>
+                  {stores.map((store) => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Customer */}
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Customer</label>
+                <select
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                  className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Walk-in</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>{customer.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Employee */}
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Employee</label>
+                <select
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                  className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Select</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Date */}
+              <div className="col-span-3">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={saleDate}
+                  onChange={(e) => setSaleDate(e.target.value)}
+                  className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            
+            {/* Items Table */}
+            <div className="bg-gray-50 rounded p-2 mb-3 overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-300">
+                    <th className="px-1 py-1.5 text-left text-xs font-bold">Code</th>
+                    <th className="px-1 py-1.5 text-left text-xs font-bold">Item</th>
+                    <th className="px-1 py-1.5 text-left text-xs font-bold">Batch</th>
+                    <th className="px-1 py-1.5 text-right text-xs font-bold">Price</th>
+                    <th className="px-1 py-1.5 text-center text-xs font-bold">Qty</th>
+                    <th className="px-1 py-1.5 text-right text-xs font-bold">Dis%</th>
+                    <th className="px-1 py-1.5 text-right text-xs font-bold">Dis Val</th>
+                    <th className="px-1 py-1.5 text-right text-xs font-bold">Net</th>
+                    <th className="px-1 py-1.5 text-center text-xs font-bold">✕</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="px-1 py-6 text-center text-gray-500">
+                        <p className="text-xs">No items added. Search and select items above.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    items.map((item, index) => (
+                      <tr key={item.id} className="border-b border-gray-200 hover:bg-white">
+                        <td className="px-1 py-1">
+                          <input type="text" value={item.item_code} readOnly className="w-16 px-1 py-0.5 text-xs bg-white border border-gray-300 rounded" />
+                        </td>
+                        <td className="px-1 py-1">
+                          <input type="text" value={item.item_name} readOnly className="w-full px-1 py-0.5 text-xs bg-white border border-gray-300 rounded font-medium" />
+                        </td>
+                        <td className="px-1 py-1">
                           <input
                             type="text"
-                            placeholder="Search items..."
-                            value={itemSearch}
-                            onChange={(e) => setItemSearch(e.target.value)}
-                            className="w-full px-3 py-2 border-b text-sm focus:outline-none"
-                            autoFocus
+                            value={item.batch_no}
+                            onChange={(e) => handleItemChange(index, 'batch_no', e.target.value)}
+                            className="w-16 px-1 py-0.5 text-xs border border-gray-300 rounded"
+                            placeholder="Batch"
                           />
-                          <div className="max-h-48 overflow-y-auto">
-                            {filteredItems.length > 0 ? (
-                              filteredItems.map((si) => {
-                                const itemData = si.items;
-                                if (!itemData) return null;
-                                return (
-                                  <div
-                                    key={si.id}
-                                    onClick={() => handleSelectItem(si)}
-                                    className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b text-sm"
-                                  >
-                                    <div className="font-medium">{itemData.name}</div>
-                                    <div className="text-xs text-gray-600 flex justify-between mt-0.5">
-                                      <span>{itemData.code}</span>
-                                      <span>
-                                        Stock:{' '}
-                                        <span className="font-semibold text-green-600">
-                                          {si.quantity_on_hand}
-                                        </span>{' '}
-                                        | Price:{' '}
-                                        <span className="font-semibold">
-                                          Rs. {itemData.retail_price}
-                                        </span>
-                                      </span>
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            ) : itemSearch.length > 0 ? (
-                              <div className="px-3 py-2 text-xs text-gray-600">
-                                No items found matching "{itemSearch}"
-                              </div>
-                            ) : (
-                              <div className="px-3 py-2 text-xs text-gray-600">
-                                {storeItems.length === 0
-                                  ? 'No items available in this store'
-                                  : 'Type to search items...'}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                        </td>
+                        <td className="px-1 py-1">
+                          <input
+                            type="number"
+                            value={item.price}
+                            onChange={(e) => handleItemChange(index, 'price', e.target.value)}
+                            step="0.01"
+                            className="w-16 px-1 py-0.5 text-xs border border-gray-300 rounded text-right"
+                          />
+                        </td>
+                        <td className="px-1 py-1">
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                            min="1"
+                            className="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded text-center font-semibold"
+                          />
+                        </td>
+                        <td className="px-1 py-1">
+                          <input
+                            type="number"
+                            value={item.discount_percent}
+                            onChange={(e) => handleItemChange(index, 'discount_percent', e.target.value)}
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            className="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded text-right"
+                          />
+                        </td>
+                        <td className="px-1 py-1">
+                          <input
+                            type="number"
+                            value={item.discount_value.toFixed(2)}
+                            readOnly
+                            className="w-16 px-1 py-0.5 text-xs bg-orange-50 border border-orange-300 rounded text-right text-orange-600 font-semibold"
+                          />
+                        </td>
+                        <td className="px-1 py-1">
+                          <input
+                            type="number"
+                            value={item.net_value.toFixed(2)}
+                            readOnly
+                            className="w-20 px-1 py-0.5 text-xs bg-blue-50 border border-blue-300 rounded text-right text-blue-700 font-bold"
+                          />
+                        </td>
+                        <td className="px-1 py-1 text-center">
+                          <button onClick={() => handleRemoveItem(index)} className="text-red-600 hover:text-red-800 font-bold text-xs">✕</button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Bottom Section */}
+            <div className="grid grid-cols-12 gap-3 mb-3">
+              {/* Description */}
+              <div className="col-span-5">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={2}
+                  placeholder="Notes..."
+                  className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
+                />
+              </div>
+              
+              {/* Totals */}
+              <div className="col-span-7 bg-gradient-to-br from-blue-50 to-indigo-50 rounded p-3 border border-blue-200">
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-gray-700">Total Value</span>
+                    <input type="text" value={`Rs. ${totals.totalValue.toFixed(2)}`} readOnly className="w-32 px-2 py-1 text-xs bg-white border border-gray-300 rounded text-right font-bold" />
                   </div>
-
-                  {/* Quantity */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Qty *</label>
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                      min="1"
-                      required
-                      className={`w-full px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 ${
-                        item.quantity <= 0
-                          ? 'border-red-300 bg-red-50 focus:ring-red-500'
-                          : 'border-gray-300 focus:ring-blue-500'
-                      }`}
-                    />
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-gray-700">Discount</span>
+                    <input type="text" value={`Rs. ${totals.totalDiscount.toFixed(2)}`} readOnly className="w-32 px-2 py-1 text-xs bg-white border border-orange-300 rounded text-right font-bold text-orange-600" />
                   </div>
-
-                  {/* Unit Price */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Price *
-                    </label>
-                    <input
-                      type="number"
-                      value={item.unit_price}
-                      onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
-                      step="0.01"
-                      required
-                      className={`w-full px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 ${
-                        item.unit_price <= 0
-                          ? 'border-red-300 bg-red-50 focus:ring-red-500'
-                          : 'border-gray-300 focus:ring-blue-500'
-                      }`}
-                    />
-                  </div>
-
-                  {/* Discount % */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Discount %
-                    </label>
-                    <input
-                      type="number"
-                      value={item.discount_percent}
-                      onChange={(e) =>
-                        handleItemChange(index, 'discount_percent', e.target.value)
-                      }
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      className="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* Remove Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(index)}
-                    disabled={formData.items.length === 1}
-                    className="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                {/* Line Total */}
-                <div className="mt-3 flex justify-end">
-                  <div className="text-right">
-                    <span className="text-xs text-gray-600 mr-2">Line Total:</span>
-                    <span className="font-semibold text-gray-900">
-                      Rs.{' '}
-                      {calculateLineTotal(item).toLocaleString('en-IN', {
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
+                  <div className="flex justify-between items-center pt-1.5 border-t border-blue-300">
+                    <span className="text-sm font-bold text-gray-900">Net Total</span>
+                    <input type="text" value={`Rs. ${totals.netTotal.toFixed(2)}`} readOnly className="w-32 px-2 py-1.5 text-sm bg-blue-600 border border-blue-800 rounded text-right font-bold text-white" />
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Total Section */}
-        <div className="border-t pt-6 bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Subtotal</p>
-              <p className="text-xl font-semibold text-gray-900">
-                Rs.{' '}
-                {formData.items
-                  .reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
-                  .toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-              </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total Discount</p>
-              <p className="text-xl font-semibold text-orange-600">
-                -Rs.{' '}
-                {formData.items
-                  .reduce((sum, item) => sum + item.discount_value, 0)
-                  .toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total Amount</p>
-              <p className="text-3xl font-bold text-blue-600">
-                Rs. {total.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-              </p>
+            
+            {/* Action Buttons */}
+            <div className="grid grid-cols-5 gap-2">
+              <button onClick={handleExit} disabled={loading} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded shadow hover:shadow-lg transition disabled:opacity-50">
+                <span className="text-xs">Esc</span> Exit
+              </button>
+              <button onClick={handleSave} disabled={loading || items.length === 0} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded shadow hover:shadow-lg transition disabled:opacity-50">
+                <span className="text-xs">F8</span> Save
+              </button>
+              <button onClick={handleDelete} disabled={loading || items.length === 0} className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold rounded shadow hover:shadow-lg transition disabled:opacity-50">
+                <span className="text-xs">F9</span> Delete
+              </button>
+              <button onClick={handleCancel} disabled={loading} className="px-3 py-1.5 bg-gray-300 hover:bg-gray-400 text-gray-800 text-xs font-bold rounded shadow hover:shadow-lg transition disabled:opacity-50">
+                <span className="text-xs">F12</span> Cancel
+              </button>
+              <button onClick={handlePrint} disabled={loading || items.length === 0} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded shadow hover:shadow-lg transition disabled:opacity-50">
+                <span className="text-xs">F2</span> Print
+              </button>
             </div>
           </div>
         </div>
-
-        {/* Actions */}
-        <div className="flex gap-4 justify-end border-t pt-6">
-          <Link
-            href="/sales/retail"
-            className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50 font-medium"
-          >
-            Cancel
-          </Link>
-          <button
-            type="submit"
-            disabled={loading || formData.items.length === 0}
-            className="bg-blue-600 text-white px-8 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-          >
-            {loading ? 'Creating Sale...' : 'Create Sale'}
-          </button>
+      </div>
+      
+      {/* Payment Modal - Semi-transparent background showing sales list behind */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 print:hidden">
+          <div className="bg-white rounded-lg shadow-2xl p-5 w-80">
+            <h2 className="text-lg font-bold mb-4 text-gray-900">Cash Payment</h2>
+            
+            <div className="space-y-3 mb-5">
+              <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-gray-700">Total Amount:</span>
+                  <span className="text-xl font-bold text-blue-600">Rs. {totals.netTotal.toFixed(2)}</span>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Cash Received:</label>
+                <input
+                  type="number"
+                  value={cashReceived}
+                  onChange={(e) => setCashReceived(e.target.value)}
+                  step="0.01"
+                  autoFocus
+                  className="w-full px-3 py-2 text-base border-2 border-gray-300 rounded focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-right font-bold"
+                  placeholder="0.00"
+                />
+              </div>
+              
+              {cashReceived && parseFloat(cashReceived) >= totals.netTotal && (
+                <div className="bg-green-50 p-3 rounded border-2 border-green-300">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-gray-700">Change:</span>
+                    <span className="text-xl font-bold text-green-600">Rs. {changeAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+              
+              {cashReceived && parseFloat(cashReceived) > 0 && parseFloat(cashReceived) < totals.netTotal && (
+                <div className="bg-red-50 p-2 rounded border border-red-300">
+                  <p className="text-xs text-red-700 font-semibold">
+                    Insufficient! Need Rs. {(totals.netTotal - parseFloat(cashReceived)).toFixed(2)} more
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setCashReceived('');
+                }}
+                className="flex-1 px-3 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm font-bold rounded transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmPayment}
+                disabled={!cashReceived || parseFloat(cashReceived) < totals.netTotal || loading}
+                className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Processing...' : 'Print Bill'}
+              </button>
+            </div>
+          </div>
         </div>
-      </form>
-    </div>
+      )}
+    </>
   );
 }
